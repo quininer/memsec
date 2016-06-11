@@ -69,7 +69,7 @@ pub unsafe fn memzero<T>(s: *mut T, n: usize) {
 
 #[cfg(unix)]
 pub unsafe fn mlock<T>(addr: *mut T, len: size_t) -> bool {
-    ::libc::mlock(mem::transmute(addr), len) != 0
+    ::libc::mlock(mem::transmute(addr), len) == 0
 }
 
 #[cfg(windows)]
@@ -83,7 +83,7 @@ pub unsafe fn mlock<T>(addr: *mut T, len: size_t) -> bool {
 
 #[cfg(unix)]
 pub unsafe fn munlock<T>(addr: *mut T, len: size_t) -> bool {
-    ::libc::munlock(mem::transmute(addr), len) != 0
+    ::libc::munlock(mem::transmute(addr), len) == 0
 }
 
 #[cfg(windows)]

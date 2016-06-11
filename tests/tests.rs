@@ -24,3 +24,11 @@ fn memcmp_test() {
 }
 
 // TODO how test mlock/munlock?
+
+#[test]
+fn mlock_munlock_test() {
+    let mut x = [1; 16];
+
+    assert!(unsafe { memsec::mlock(x.as_mut_ptr(), size_of_val(&x)) });
+    assert!(unsafe { memsec::munlock(x.as_mut_ptr(), size_of_val(&x)) });
+}
