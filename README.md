@@ -5,11 +5,15 @@ I have not tested this library in Windows, it may contain insecurity implementat
 
 If the code have any issue, please remind me.
 
+* [x] `memcmp`
+* [x] `memset`/`memzero`
+* [x] `mlock`/`munlock`
+* [x] `mprotect`
+* [ ] `alloc`/`free`
 
-* Constant time memcmp:
+ref
+---
 
-```
-running 2 tests
-test memcmp_eq_bench ... bench:         113 ns/iter (+/- 9)
-test memcmp_nq_bench ... bench:         113 ns/iter (+/- 4)
-```
+* [Securing memory allocations](https://download.libsodium.org/doc/helpers/memory_management.html)
+* [rlibc](https://github.com/alexcrichton/rlibc)
+* [aligned_alloc.rs](https://github.com/jonas-schievink/aligned_alloc.rs)
