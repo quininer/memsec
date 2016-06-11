@@ -74,10 +74,56 @@ pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
 
 #[cfg(unix)]
 pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
+    memzero(addr, len);
     libc::munlock(addr as *mut libc::c_void, len) == 0
 }
 
 #[cfg(windows)]
 pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
+    memzero(addr, len);
     kernel32::VirtualUnlock(addr as winapi::LPVOID, len as winapi::SIZE_T) != 0
+}
+
+// -- mprotect --
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum Prot {
+    #[cfg(unix)] NoAccess = libc::PROT_NONE as isize,
+    #[cfg(unix)] ReadOnly = libc::PROT_READ as isize,
+    #[cfg(unix)] WriteOnly = libc::PROT_WRITE as isize,
+    #[cfg(unix)] ReadWrite = (libc::PROT_READ | libc::PROT_WRITE) as isize,
+    #[cfg(unix)] Execute = libc::PROT_EXEC as isize,
+    #[cfg(unix)] ReadExec = (libc::PROT_READ | libc::PROT_EXEC) as isize,
+    #[cfg(unix)] WriteExec = (libc::PROT_WRITE | libc::PROT_EXEC) as isize,
+    #[cfg(unix)] ReadWriteExec = (libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC) as isize,
+
+    #[cfg(windows)] NoAccess = winapi::PAGE_NOACCESS as isize,
+    #[cfg(windows)] ReadOnly = winapi::PAGE_READONLY as isize,
+    #[cfg(windows)] ReadWrite = winapi::PAGE_READWRITE as isize,
+    #[cfg(windows)] WriteCopy = winapi::PAGE_WRITECOPY as isize,
+    #[cfg(windows)] Execute = winapi::PAGE_EXECUTE as isize,
+    #[cfg(windows)] ReadExec = winapi::PAGE_EXECUTE_READ as isize,
+    #[cfg(windows)] ReadWriteExec = winapi::PAGE_EXECUTE_READWRITE as isize,
+    #[cfg(windows)] WriteCopyExec = winapi::PAGE_EXECUTE_WRITECOPY as isize,
+    #[cfg(windows)] Guard = winapi::PAGE_GUARD as isize,
+    #[cfg(windows)] NoCache = winapi::PAGE_NOCACHE as isize,
+    #[cfg(windows)] WriteCombine = winapi::PAGE_WRITECOMBINE as isize,
+    #[cfg(windows)] RevertToFileMap = winapi::PAGE_REVERT_TO_FILE_MAP as isize,
+    #[cfg(windows)] TargetsNoUpdate = winapi::PAGE_TARGETS_NO_UPDATE as isize,
+    #[cfg(windows)] TargetsInvalid = winapi::PAGE_TARGETS_INVALID as isize,
+}
+
+#[cfg(unix)]
+pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
+    libc::mprotect(ptr as *mut libc::c_void, len, prot as libc::c_int) == 0
+}
+
+#[cfg(windows)]
+pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) {
+    kernel32::VirtualProtect(
+        ptr as winapi::LPVOID,
+        len as winapi::SIZE_T,
+        prot as winapi::DWORD,
+        core::mem::uninitialized()
+    ) != 0
 }

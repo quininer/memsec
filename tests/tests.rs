@@ -31,4 +31,5 @@ fn mlock_munlock_test() {
 
     assert!(unsafe { memsec::mlock(x.as_mut_ptr(), size_of_val(&x)) });
     assert!(unsafe { memsec::munlock(x.as_mut_ptr(), size_of_val(&x)) });
+    assert_eq!(x, [0; 16]);
 }
