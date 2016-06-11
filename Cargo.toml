@@ -1,0 +1,7 @@
+[package]
+name = "memsec"
+version = "0.1.0"
+authors = ["quininer kel <quininer@live.com>"]
+
+[dependencies]
+libc = "0.2"
