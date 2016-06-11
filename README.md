@@ -6,7 +6,7 @@ I have not tested this library in Windows, it may contain insecurity implementat
 If the code have any issue, please remind me.
 
 
-Constant time memcmp:
+* Constant time memcmp:
 
 ```
 running 2 tests

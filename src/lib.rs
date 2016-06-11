@@ -6,6 +6,7 @@
 
 // -- memcmp --
 
+/// Constant time memcmp.
 pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> bool {
     let b1 = b1 as *const u8;
     let b2 = b2 as *const u8;
@@ -18,6 +19,7 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> bool {
 
 // -- memset / memzero --
 
+/// General memset.
 #[cfg(not(HAVE_MEMSET_S))]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     let s = s as *mut u8;
@@ -28,6 +30,7 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     }
 }
 
+/// Call memset_s.
 #[cfg(HAVE_MEMSET_S)]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     extern {
@@ -37,11 +40,13 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 }
 
 
+/// General memzero.
 #[cfg(all(unix, not(HAVE_EXPLICIT_BZERO)))]
 pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     memset(dest, 0, n);
 }
 
+/// Call explicit_bzero.
 #[cfg(all(unix, HAVE_EXPLICIT_BZERO))]
 pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     extern {
@@ -50,6 +55,7 @@ pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     explicit_bzero(dest as *mut libc::c_void, n);
 }
 
+/// call SecureZeroMemory.
 #[cfg(windows)]
 pub unsafe fn memzero<T>(s: *mut T, n: usize) {
     extern "system" {
@@ -61,23 +67,27 @@ pub unsafe fn memzero<T>(s: *mut T, n: usize) {
 
 // -- mlock / munlock --
 
+/// Unix mlock.
 #[cfg(unix)]
 pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
     libc::mlock(addr as *mut libc::c_void, len) == 0
 }
 
+/// Windows VirtualLock.
 #[cfg(windows)]
 pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
     kernel32::VirtualLock(addr as winapi::LPVOID, len as winapi::SIZE_T) != 0
 }
 
 
+/// Unix munlock.
 #[cfg(unix)]
 pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
     memzero(addr, len);
     libc::munlock(addr as *mut libc::c_void, len) == 0
 }
 
+/// Windows VirtualUnlock.
 #[cfg(windows)]
 pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
     memzero(addr, len);
@@ -86,6 +96,7 @@ pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
 
 // -- mprotect --
 
+/// Prot enum.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Prot {
     #[cfg(unix)] NoAccess = libc::PROT_NONE as isize,
@@ -113,11 +124,13 @@ pub enum Prot {
     #[cfg(windows)] TargetsInvalid = winapi::PAGE_TARGETS_INVALID as isize,
 }
 
+/// Unix mprotect.
 #[cfg(unix)]
 pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
     libc::mprotect(ptr as *mut libc::c_void, len, prot as libc::c_int) == 0
 }
 
+/// Windows VirtualProtect.
 #[cfg(windows)]
 pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) {
     kernel32::VirtualProtect(
