@@ -1,9 +1,7 @@
 #![no_std]
 
-extern crate libc;
+#[cfg(unix)] extern crate libc;
 #[cfg(windows)] extern crate kernel32;
-
-use core::mem;
 
 
 // -- memcmp --
@@ -35,7 +33,7 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     extern {
         fn memset_s(s: *mut libc::c_void, smax: libc::size_t, c: libc::c_int, n: libc::size_t) -> libc::c_int;
     }
-    memset_s(mem::transmute(s), n, c, n);
+    memset_s(s as libc::c_void, n, c, n);
 }
 
 
@@ -49,7 +47,7 @@ pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     extern {
         fn explicit_bzero(s: *mut libc::c_void, n: libc::size_t);
     }
-    explicit_bzero(mem::transmute(dest), n);
+    explicit_bzero(dest as *mut libc::c_void, n);
 }
 
 #[cfg(windows)]
@@ -57,7 +55,7 @@ pub unsafe fn memzero<T>(s: *mut T, n: usize) {
     extern "system" {
         fn SecureZeroMemory(ptr: winapi::PVOID, cnt: winapi::SIZE_T);
     }
-    SecureZeroMemory(mem::transmute(s), n as winapi::SIZE_T);
+    SecureZeroMemory(s as winapi::PVOID, n as winapi::SIZE_T);
 }
 
 
@@ -65,21 +63,21 @@ pub unsafe fn memzero<T>(s: *mut T, n: usize) {
 
 #[cfg(unix)]
 pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
-    libc::mlock(mem::transmute(addr), len) == 0
+    libc::mlock(addr as *mut libc::c_void, len) == 0
 }
 
 #[cfg(windows)]
 pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
-    kernel32::VirtualLock(mem::transmute(addr), len as winapi::SIZE_T) != 0
+    kernel32::VirtualLock(addr as winapi::LPVOID, len as winapi::SIZE_T) != 0
 }
 
 
 #[cfg(unix)]
 pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
-    libc::munlock(mem::transmute(addr), len) == 0
+    libc::munlock(addr as *mut libc::c_void, len) == 0
 }
 
 #[cfg(windows)]
 pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
-    kernel32::VirtualUnlock(mem::transmute(addr), len as winapi::SIZE_T) != 0
+    kernel32::VirtualUnlock(addr as winapi::LPVOID, len as winapi::SIZE_T) != 0
 }
