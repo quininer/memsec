@@ -1,8 +1,7 @@
 use std::sync::{ Once, ONCE_INIT };
 use std::intrinsics::abort;
 use std::{ mem, ptr };
-use rand::{ thread_rng, Rng };
-use rand::os::OsRng;
+use rand::{ thread_rng, Rng, OsRng };
 use errno::{ Errno, set_errno };
 
 
@@ -144,7 +143,22 @@ pub unsafe fn malloc<T>(size: usize) -> *mut T {
 }
 
 /// Alloc array.
-pub unsafe fn allocarray<T>(count: usize, size: usize) -> *mut T {
+///
+/// ```
+/// use std::{ slice, mem };
+/// use memsec::{ allocarray, free, memzero, memset, memcmp };
+///
+/// let memptr: *mut u8 = unsafe { allocarray(8) };
+/// let array = unsafe { slice::from_raw_parts_mut(memptr, 8) };
+/// assert_eq!(array, [0xd0; 8]);
+/// unsafe { memzero(memptr, 8) };
+/// assert_eq!(array, [0; 8]);
+/// array[0] = 1;
+/// assert!(unsafe { memcmp(memptr, [1, 0, 0, 0, 0, 0, 0, 0].as_ptr(), 8) });
+/// unsafe { free(memptr) };
+/// ```
+pub unsafe fn allocarray<T>(count: usize) -> *mut T {
+    let size = mem::size_of::<T>();
     if count > mem::size_of::<usize>() && size >= ::std::usize::MAX / count {
         set_errno(Errno(::libc::ENOMEM));
         return ptr::null_mut();
