@@ -1,4 +1,5 @@
 #![feature(core_intrinsics)]
+#![feature(stmt_expr_attributes)]
 
 extern crate rand;
 extern crate errno;

@@ -15,30 +15,21 @@ static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 
 // -- alloc init --
 
-#[cfg(unix)]
 unsafe fn alloc_init() {
-    let page_size = ::libc::sysconf(::libc::_SC_PAGESIZE);
-    if page_size > 0 {
-        PAGE_SIZE = page_size as usize;
-    }
-
-    if (PAGE_SIZE < CANARY_SIZE)
-        || (PAGE_SIZE < mem::size_of::<usize>())
+    #[cfg(unix)]
     {
-        abort();
+        let page_size = ::libc::sysconf(::libc::_SC_PAGESIZE);
+        if page_size > 0 {
+            PAGE_SIZE = page_size as usize;
+        }
     }
 
-    match OsRng::new() {
-        Ok(mut rng) => rng.fill_bytes(&mut CANARY),
-        Err(_) => thread_rng().fill_bytes(&mut CANARY)
+    #[cfg(windows)]
+    {
+        let si = mem::uninitialized();
+        ::kernel32::GetSystemInfo(si);
+        PAGE_SIZE = ptr::read(si).dwPageSize as usize;
     }
-}
-
-#[cfg(windows)]
-unsafe fn alloc_init() {
-    let si = mem::uninitialized();
-    ::kernel32::GetSystemInfo(si);
-    PAGE_SIZE = ptr::read(si).dwPageSize as usize;
 
     if PAGE_SIZE < CANARY_SIZE || PAGE_SIZE < mem::size_of::<usize>() {
         abort();
@@ -49,7 +40,6 @@ unsafe fn alloc_init() {
         Err(_) => thread_rng().fill_bytes(&mut CANARY)
     }
 }
-
 
 // -- aligned alloc/free --
 
@@ -139,7 +129,7 @@ unsafe fn _malloc<T>(size: usize) -> *mut T {
         .offset(-(size_with_canary as isize));
     let user_ptr = canary_ptr.offset(mem::size_of_val(&CANARY) as isize);
     ptr::copy(CANARY.as_ptr(), canary_ptr as *mut u8, mem::size_of_val(&CANARY));
-    ptr::copy(&unprotected_size, base_ptr as *mut usize, mem::size_of_val(&unprotected_size));
+    ptr::write(base_ptr as *mut usize, unprotected_size);
     ::mprotect(base_ptr, PAGE_SIZE, ::Prot::ReadOnly);
 
     debug_assert_eq!(unprotected_ptr_from_user_ptr(user_ptr), unprotected_ptr);

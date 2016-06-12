@@ -47,6 +47,20 @@ fn malloc_mprotect_test() {
 
 #[test]
 fn malloc_free_test() {
-    let memptr: *mut u8 = unsafe { memsec::malloc(mem::size_of::<u8>()) };
+    let memptr: *mut u8 = unsafe { memsec::malloc(1) };
+    assert!(!memptr.is_null());
     unsafe { memsec::free(memptr) };
+
+    let memptr: *mut u8 = unsafe { memsec::malloc(0) };
+    assert!(!memptr.is_null());
+    unsafe { memsec::free(memptr) };
+
+    let memptr: *mut u8 = unsafe { memsec::malloc(std::usize::MAX - 1) };
+    assert!(memptr.is_null());
+    unsafe { memsec::free(memptr) };
+
+    let buf: *mut u8 = unsafe { memsec::allocarray(mem::size_of::<u8>(), 16) };
+    unsafe { memsec::memzero(buf, 16 * mem::size_of::<u8>()) };
+    assert!(unsafe { memsec::memcmp(buf, [0; 16].as_ptr(), 16 * mem::size_of::<u8>()) });
+    unsafe { memsec::free(buf) };
 }
