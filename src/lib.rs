@@ -1,7 +1,14 @@
-#![no_std]
+#![feature(core_intrinsics)]
 
+extern crate rand;
+extern crate errno;
 #[cfg(unix)] extern crate libc;
 #[cfg(windows)] extern crate kernel32;
+#[cfg(all(unix, test))] extern crate nix;
+
+mod alloc;
+
+pub use alloc::{ unprotected_mprotect, malloc, allocarray, free };
 
 
 // -- memcmp --
@@ -132,7 +139,7 @@ pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
 
 /// Windows VirtualProtect.
 #[cfg(windows)]
-pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) {
+pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
     kernel32::VirtualProtect(
         ptr as winapi::LPVOID,
         len as winapi::SIZE_T,

@@ -9,7 +9,7 @@ If the code have any issue, please remind me.
 * [x] `memset`/`memzero`
 * [x] `mlock`/`munlock`
 * [x] `mprotect`
-* [ ] `alloc`/`free`
+* [x] `alloc`/`free`
 
 ref
 ---
