@@ -1,4 +1,5 @@
 extern crate memsec;
+#[cfg(unix)] extern crate nix;
 
 use std::mem;
 
@@ -34,18 +35,6 @@ fn mlock_munlock_test() {
 }
 
 #[test]
-fn malloc_mprotect_test() {
-    let x: *mut u8 = unsafe { memsec::malloc(16 * mem::size_of::<u8>()) };
-
-    unsafe { memsec::memset(x, 1, 16 * mem::size_of::<u8>()) };
-    assert!(unsafe { memsec::unprotected_mprotect(x, memsec::Prot::ReadOnly) });
-    assert!(unsafe { memsec::memcmp(x, [1; 16].as_ptr(), 16 * mem::size_of::<u8>()) });
-    assert!(unsafe { memsec::unprotected_mprotect(x, memsec::Prot::NoAccess) });
-    assert!(unsafe { memsec::unprotected_mprotect(x, memsec::Prot::ReadWrite) });
-    unsafe { memsec::free(x) };
-}
-
-#[test]
 fn malloc_free_test() {
     let memptr: *mut u8 = unsafe { memsec::malloc(1) };
     assert!(!memptr.is_null());
@@ -63,4 +52,36 @@ fn malloc_free_test() {
     unsafe { memsec::memzero(buf, 16 * mem::size_of::<u8>()) };
     assert!(unsafe { memsec::memcmp(buf, [0; 16].as_ptr(), 16 * mem::size_of::<u8>()) });
     unsafe { memsec::free(buf) };
+}
+
+#[test]
+fn malloc_mprotect_1_test() {
+    let x: *mut u8 = unsafe { memsec::malloc(16 * mem::size_of::<u8>()) };
+
+    unsafe { memsec::memset(x, 1, 16 * mem::size_of::<u8>()) };
+    assert!(unsafe { memsec::unprotected_mprotect(x, memsec::Prot::ReadOnly) });
+    assert!(unsafe { memsec::memcmp(x, [1; 16].as_ptr(), 16 * mem::size_of::<u8>()) });
+    assert!(unsafe { memsec::unprotected_mprotect(x, memsec::Prot::NoAccess) });
+    assert!(unsafe { memsec::unprotected_mprotect(x, memsec::Prot::ReadWrite) });
+    unsafe { memsec::memzero(x, 16 * mem::size_of::<u8>()) };
+    unsafe { memsec::free(x) };
+}
+
+#[should_panic]
+#[test]
+fn malloc_mprotect_2_test() {
+    use nix::sys::signal;
+    extern fn sigsegv(_: i32) { panic!() }
+    let sigaction = signal::SigAction::new(
+        signal::SigHandler::Handler(sigsegv),
+        signal::SA_SIGINFO,
+        signal::SigSet::empty(),
+    );
+    unsafe { signal::sigaction(signal::SIGSEGV, &sigaction).ok() };
+
+    let x: *mut u8 = unsafe { memsec::allocarray(mem::size_of::<u8>(), 16) };
+
+    unsafe { memsec::memset(x, 1, 16 * mem::size_of::<u8>()) };
+    unsafe { memsec::unprotected_mprotect(x, memsec::Prot::ReadOnly) };
+    unsafe { memsec::memzero(x, 16 * mem::size_of::<u8>()) }; // SIGSEGV!
 }

@@ -16,16 +16,14 @@ static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 // -- alloc init --
 
 unsafe fn alloc_init() {
-    #[cfg(unix)]
-    {
+    #[cfg(unix)] {
         let page_size = ::libc::sysconf(::libc::_SC_PAGESIZE);
         if page_size > 0 {
             PAGE_SIZE = page_size as usize;
         }
     }
 
-    #[cfg(windows)]
-    {
+    #[cfg(windows)] {
         let si = mem::uninitialized();
         ::kernel32::GetSystemInfo(si);
         PAGE_SIZE = ptr::read(si).dwPageSize as usize;
@@ -163,8 +161,8 @@ pub unsafe fn free<T>(memptr: *mut T) {
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
     ::mprotect(base_ptr, total_size, ::Prot::ReadWrite);
 
-    assert!(::memcmp(canary_ptr as *const u8, CANARY.as_ptr(), mem::size_of_val(&CANARY)));
-    assert!(::memcmp(
+    debug_assert!(::memcmp(canary_ptr as *const u8, CANARY.as_ptr(), mem::size_of_val(&CANARY)));
+    debug_assert!(::memcmp(
         unprotected_ptr.offset(unprotected_size as isize) as *const u8,
         CANARY.as_ptr(),
         mem::size_of_val(&CANARY)
@@ -178,8 +176,9 @@ pub unsafe fn free<T>(memptr: *mut T) {
 
 pub unsafe fn unprotected_mprotect<T>(ptr: *mut T, prot: ::Prot) -> bool {
     let unprotected_ptr = unprotected_ptr_from_user_ptr(ptr);
-    let base_ptr = unprotected_ptr.offset(PAGE_SIZE as isize * 2);
-    ::mprotect(unprotected_ptr, ptr::read(base_ptr as *const usize), prot)
+    let base_ptr = unprotected_ptr.offset(-(PAGE_SIZE as isize * 2));
+    let unprotected_size = ptr::read(base_ptr as *const usize);
+    ::mprotect(unprotected_ptr, unprotected_size, prot)
 }
 
 #[cfg(all(unix, test))]
