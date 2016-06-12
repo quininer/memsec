@@ -1,9 +1,7 @@
-#[cfg(unix)] extern crate nix;
-extern crate aligned_alloc;
 extern crate memsec;
+#[cfg(unix)] extern crate nix;
 
 use std::mem;
-use aligned_alloc::{ aligned_alloc, aligned_free };
 
 
 #[test]
@@ -37,22 +35,42 @@ fn mlock_munlock_test() {
 }
 
 #[test]
-fn mprotect_1_test() {
-    let x = aligned_alloc(16 * mem::size_of::<u8>(), 128) as *mut u8;
+fn malloc_free_test() {
+    let memptr: *mut u8 = unsafe { memsec::malloc(1) };
+    assert!(!memptr.is_null());
+    unsafe { memsec::free(memptr) };
 
-    unsafe { memsec::memset(x, 1, 16 * mem::size_of::<u8>()) };
-    assert!(unsafe { memsec::mprotect(x, 16 * mem::size_of::<u8>(), memsec::Prot::ReadOnly) });
-    assert!(unsafe { memsec::memcmp(x, [1; 16].as_ptr(), 16 * mem::size_of::<u8>()) });
-    assert!(unsafe { memsec::mprotect(x, 16 * mem::size_of::<u8>(), memsec::Prot::NoAccess) });
-    unsafe { aligned_free(x as *mut ()) };
+    let memptr: *mut u8 = unsafe { memsec::malloc(0) };
+    assert!(!memptr.is_null());
+    unsafe { memsec::free(memptr) };
+
+    let memptr: *mut u8 = unsafe { memsec::malloc(std::usize::MAX - 1) };
+    assert!(memptr.is_null());
+    unsafe { memsec::free(memptr) };
+
+    let buf: *mut u8 = unsafe { memsec::allocarray(mem::size_of::<u8>(), 16) };
+    unsafe { memsec::memzero(buf, 16 * mem::size_of::<u8>()) };
+    assert!(unsafe { memsec::memcmp(buf, [0; 16].as_ptr(), 16 * mem::size_of::<u8>()) });
+    unsafe { memsec::free(buf) };
 }
 
-#[cfg(unix)]
+#[test]
+fn malloc_mprotect_1_test() {
+    let x: *mut u8 = unsafe { memsec::malloc(16 * mem::size_of::<u8>()) };
+
+    unsafe { memsec::memset(x, 1, 16 * mem::size_of::<u8>()) };
+    assert!(unsafe { memsec::unprotected_mprotect(x, memsec::Prot::ReadOnly) });
+    assert!(unsafe { memsec::memcmp(x, [1; 16].as_ptr(), 16 * mem::size_of::<u8>()) });
+    assert!(unsafe { memsec::unprotected_mprotect(x, memsec::Prot::NoAccess) });
+    assert!(unsafe { memsec::unprotected_mprotect(x, memsec::Prot::ReadWrite) });
+    unsafe { memsec::memzero(x, 16 * mem::size_of::<u8>()) };
+    unsafe { memsec::free(x) };
+}
+
 #[should_panic]
 #[test]
-fn mprotect_2_test() {
+fn malloc_mprotect_2_test() {
     use nix::sys::signal;
-
     extern fn sigsegv(_: i32) { panic!() }
     let sigaction = signal::SigAction::new(
         signal::SigHandler::Handler(sigsegv),
@@ -61,8 +79,9 @@ fn mprotect_2_test() {
     );
     unsafe { signal::sigaction(signal::SIGSEGV, &sigaction).ok() };
 
-    let x = aligned_alloc(16 * mem::size_of::<u8>(), 128) as *mut u8;
-    unsafe { memsec::mprotect(x, 16 * mem::size_of::<u8>(), memsec::Prot::NoAccess) };
+    let x: *mut u8 = unsafe { memsec::allocarray(mem::size_of::<u8>(), 16) };
 
+    unsafe { memsec::memset(x, 1, 16 * mem::size_of::<u8>()) };
+    unsafe { memsec::unprotected_mprotect(x, memsec::Prot::ReadOnly) };
     unsafe { memsec::memzero(x, 16 * mem::size_of::<u8>()) }; // SIGSEGV!
 }
