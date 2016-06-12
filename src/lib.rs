@@ -70,6 +70,7 @@ pub unsafe fn memzero<T>(s: *mut T, n: usize) {
 /// Unix mlock.
 #[cfg(unix)]
 pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
+    libc::madvise(addr as *mut libc::c_void, len, libc::MADV_DONTDUMP);
     libc::mlock(addr as *mut libc::c_void, len) == 0
 }
 
@@ -84,6 +85,7 @@ pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
 #[cfg(unix)]
 pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
     memzero(addr, len);
+    libc::madvise(addr as *mut libc::c_void, len, libc::MADV_DODUMP);
     libc::munlock(addr as *mut libc::c_void, len) == 0
 }
 
