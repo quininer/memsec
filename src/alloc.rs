@@ -12,7 +12,6 @@ static ALLOC_INIT: Once = ONCE_INIT;
 static mut PAGE_SIZE: usize = 0;
 static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 
-
 // -- alloc init --
 
 unsafe fn alloc_init() {
