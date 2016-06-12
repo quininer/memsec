@@ -80,7 +80,7 @@ unsafe fn page_round(size: usize) -> usize {
     (size + page_mask) & (!page_mask)
 }
 
-pub unsafe fn unprotected_ptr_from_user_ptr<T>(memptr: *const T) -> *mut T {
+unsafe fn unprotected_ptr_from_user_ptr<T>(memptr: *const T) -> *mut T {
     let canary_ptr = memptr.offset(-(mem::size_of_val(&CANARY) as isize));
     let page_mask = PAGE_SIZE - 1;
     let unprotected_ptr_u = canary_ptr as usize & !page_mask;
@@ -135,6 +135,7 @@ unsafe fn _malloc<T>(size: usize) -> *mut T {
     user_ptr
 }
 
+/// Secure malloc.
 pub unsafe fn malloc<T>(size: usize) -> *mut T {
     let memptr = _malloc(size);
     if !memptr.is_null() {
@@ -143,6 +144,7 @@ pub unsafe fn malloc<T>(size: usize) -> *mut T {
     memptr
 }
 
+/// Alloc array.
 pub unsafe fn allocarray<T>(count: usize, size: usize) -> *mut T {
     if count > mem::size_of::<usize>() && size >= ::std::usize::MAX / count {
         set_errno(Errno(::libc::ENOMEM));
@@ -151,9 +153,11 @@ pub unsafe fn allocarray<T>(count: usize, size: usize) -> *mut T {
     malloc(count * size)
 }
 
+/// Secure free.
 pub unsafe fn free<T>(memptr: *mut T) {
     if memptr.is_null() { return () };
 
+    // get unprotected ptr
     let canary_ptr = memptr.offset(-(mem::size_of_val(&CANARY) as isize));
     let unprotected_ptr = unprotected_ptr_from_user_ptr(memptr);
     let base_ptr = unprotected_ptr.offset(-(PAGE_SIZE as isize * 2));
@@ -161,6 +165,7 @@ pub unsafe fn free<T>(memptr: *mut T) {
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
     ::mprotect(base_ptr, total_size, ::Prot::ReadWrite);
 
+    // check
     debug_assert!(::memcmp(canary_ptr as *const u8, CANARY.as_ptr(), mem::size_of_val(&CANARY)));
     debug_assert!(::memcmp(
         unprotected_ptr.offset(unprotected_size as isize) as *const u8,
@@ -168,12 +173,14 @@ pub unsafe fn free<T>(memptr: *mut T) {
         mem::size_of_val(&CANARY)
     ));
 
+    // free
     ::munlock(unprotected_ptr, unprotected_size);
     free_aligned(base_ptr);
 }
 
 // -- unprotected mprotect --
 
+/// Secure mprotect.
 pub unsafe fn unprotected_mprotect<T>(ptr: *mut T, prot: ::Prot) -> bool {
     let unprotected_ptr = unprotected_ptr_from_user_ptr(ptr);
     let base_ptr = unprotected_ptr.offset(-(PAGE_SIZE as isize * 2));
