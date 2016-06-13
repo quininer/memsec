@@ -37,7 +37,7 @@ unsafe fn alloc_init() {
     }
 }
 
-// -- aligned alloc/free --
+// -- aligned alloc / aligned free --
 
 #[cfg(unix)]
 unsafe fn alloc_aligned<T>(size: usize) -> *mut T {
@@ -70,7 +70,7 @@ unsafe fn free_aligned<T>(memptr: *mut T) {
     ::kernel32::VirtualFree(memptr as ::winapi::LPVOID, 0, ::winapi::MEM_RELEASE);
 }
 
-// -- malloc --
+// -- malloc / free --
 
 #[inline]
 unsafe fn page_round(size: usize) -> usize {
