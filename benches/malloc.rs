@@ -7,7 +7,6 @@
 //! test memsec_malloc    ... bench:       5,391 ns/iter (+/- 61)
 //! ```
 
-
 #![feature(test)]
 
 extern crate test;
@@ -22,7 +21,7 @@ use libc::c_void;
 #[bench]
 fn memsec_malloc(b: &mut Bencher) {
     b.iter(|| unsafe {
-        let ptr: *mut u8 = memsec::malloc(1024);
+        let ptr: *mut u8 = memsec::malloc(1024).unwrap();
         memsec::free(ptr);
     });
 }

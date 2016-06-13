@@ -40,24 +40,24 @@ unsafe fn alloc_init() {
 // -- aligned alloc / aligned free --
 
 #[cfg(unix)]
-unsafe fn alloc_aligned<T>(size: usize) -> *mut T {
+unsafe fn alloc_aligned<T>(size: usize) -> Option<*mut T> {
     let mut memptr = mem::uninitialized();
     match ::libc::posix_memalign(&mut memptr, PAGE_SIZE, size) {
-        0 => memptr as *mut T,
+        0 => Some(memptr as *mut T),
         ::libc::EINVAL => panic!("EINVAL: invalid alignmen. {}", PAGE_SIZE),
-        ::libc::ENOMEM => ptr::null_mut(),
+        ::libc::ENOMEM => None,
         _ => unreachable!()
     }
 }
 
 #[cfg(windows)]
-unsafe fn alloc_aligned<T>(size: usize) -> *mut T {
-    ::kernel32::VirtualAlloc(
+unsafe fn alloc_aligned<T>(size: usize) -> Option<*mut T> {
+    Some(::kernel32::VirtualAlloc(
         ptr::null(),
         size,
         ::winapi::MEM_COMMIT | ::winapi::MEM_RESERVE,
         ::winapi::PAGE_READWRITE
-    ) as *mut T
+    ) as *mut T)
 }
 
 #[cfg(unix)]
@@ -88,12 +88,12 @@ unsafe fn unprotected_ptr_from_user_ptr<T>(memptr: *const T) -> *mut T {
     unprotected_ptr_u as *mut T
 }
 
-unsafe fn _malloc<T>(size: usize) -> *mut T {
+unsafe fn _malloc<T>(size: usize) -> Option<*mut T> {
     ALLOC_INIT.call_once(|| alloc_init());
 
     if size >= ::std::usize::MAX - PAGE_SIZE * 4 {
         set_errno(Errno(::libc::ENOMEM));
-        return ptr::null_mut();
+        return None;
     }
     if PAGE_SIZE <= mem::size_of_val(&CANARY) || PAGE_SIZE < mem::size_of::<usize>() {
         abort();
@@ -103,10 +103,10 @@ unsafe fn _malloc<T>(size: usize) -> *mut T {
     let size_with_canary = mem::size_of_val(&CANARY) + size;
     let unprotected_size = page_round(size_with_canary);
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
-    let base_ptr = alloc_aligned(total_size);
-    if base_ptr.is_null() {
-        return base_ptr;
-    }
+    let base_ptr = match alloc_aligned(total_size) {
+        Some(memptr) => memptr,
+        None => return None
+    };
 
     // canary offset
     let unprotected_ptr = base_ptr.offset(PAGE_SIZE as isize * 2);
@@ -130,16 +130,16 @@ unsafe fn _malloc<T>(size: usize) -> *mut T {
 
     debug_assert_eq!(unprotected_ptr_from_user_ptr(user_ptr), unprotected_ptr);
 
-    user_ptr
+    Some(user_ptr)
 }
 
 /// Secure malloc.
-pub unsafe fn malloc<T>(size: usize) -> *mut T {
-    let memptr = _malloc(size);
-    if !memptr.is_null() {
-        ::memset(memptr, GARBAGE_VALUE as i32, size);
-    }
-    memptr
+pub unsafe fn malloc<T>(size: usize) -> Option<*mut T> {
+    _malloc(size)
+        .map(|memptr| {
+            ::memset(memptr, GARBAGE_VALUE as i32, size);
+            memptr
+        })
 }
 
 /// Alloc array.
@@ -148,7 +148,7 @@ pub unsafe fn malloc<T>(size: usize) -> *mut T {
 /// use std::{ slice, mem };
 /// use memsec::{ allocarray, free, memzero, memset, memcmp };
 ///
-/// let memptr: *mut u8 = unsafe { allocarray(8) };
+/// let memptr: *mut u8 = unsafe { allocarray(8).unwrap() };
 /// let array = unsafe { slice::from_raw_parts_mut(memptr, 8) };
 /// assert_eq!(array, [0xd0; 8]);
 /// unsafe { memzero(memptr, 8) };
@@ -157,13 +157,14 @@ pub unsafe fn malloc<T>(size: usize) -> *mut T {
 /// assert_eq!(unsafe { memcmp(memptr, [1, 0, 0, 0, 0, 0, 0, 0].as_ptr(), 8) }, 0);
 /// unsafe { free(memptr) };
 /// ```
-pub unsafe fn allocarray<T>(count: usize) -> *mut T {
+pub unsafe fn allocarray<T>(count: usize) -> Option<*mut T> {
     let size = mem::size_of::<T>();
     if count > mem::size_of::<usize>() && size >= ::std::usize::MAX / count {
         set_errno(Errno(::libc::ENOMEM));
-        return ptr::null_mut();
+        None
+    } else {
+        malloc(count * size)
     }
-    malloc(count * size)
 }
 
 /// Secure free.
@@ -220,7 +221,7 @@ mod test {
         );
         unsafe { signal::sigaction(signal::SIGSEGV, &sigaction).ok() };
 
-        let x: *mut u8 = unsafe { super::alloc_aligned(16 * mem::size_of::<u8>()) };
+        let x: *mut u8 = unsafe { super::alloc_aligned(16 * mem::size_of::<u8>()).unwrap() };
         unsafe { ::mprotect(x, 16 * mem::size_of::<u8>(), ::Prot::NoAccess) };
 
         unsafe { ::memzero(x, 16 * mem::size_of::<u8>()) }; // SIGSEGV!
