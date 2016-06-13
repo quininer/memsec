@@ -15,14 +15,14 @@ pub use alloc::{ unprotected_mprotect, malloc, allocarray, free };
 // -- memcmp --
 
 /// Constant time memcmp.
-pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> bool {
+pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
     let b1 = b1 as *const u8;
     let b2 = b2 as *const u8;
     let mut d = 0;
     for i in 0..len as isize {
         d |= *b1.offset(i) ^ *b2.offset(i);
     }
-    d == 0
+    (1 & (d as i32 - 1) >> 8) - 1
 }
 
 // -- memset / memzero --

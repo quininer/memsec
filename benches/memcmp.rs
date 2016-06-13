@@ -3,10 +3,10 @@
 //! Result:
 //! ```
 //! running 4 tests
-//! test libc_memcmp_eq_bench ... bench:         125 ns/iter (+/- 17)
+//! test libc_memcmp_eq_bench ... bench:         118 ns/iter (+/- 5)
 //! test libc_memcmp_nq_bench ... bench:           5 ns/iter (+/- 2)
-//! test memcmp_eq_bench      ... bench:         114 ns/iter (+/- 9)
-//! test memcmp_nq_bench      ... bench:         114 ns/iter (+/- 9)
+//! test memcmp_eq_bench      ... bench:         113 ns/iter (+/- 25)
+//! test memcmp_nq_bench      ... bench:         113 ns/iter (+/- 17)
 //! ```
 
 #![feature(test)]

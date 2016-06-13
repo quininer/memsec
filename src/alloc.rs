@@ -154,7 +154,7 @@ pub unsafe fn malloc<T>(size: usize) -> *mut T {
 /// unsafe { memzero(memptr, 8) };
 /// assert_eq!(array, [0; 8]);
 /// array[0] = 1;
-/// assert!(unsafe { memcmp(memptr, [1, 0, 0, 0, 0, 0, 0, 0].as_ptr(), 8) });
+/// assert_eq!(unsafe { memcmp(memptr, [1, 0, 0, 0, 0, 0, 0, 0].as_ptr(), 8) }, 0);
 /// unsafe { free(memptr) };
 /// ```
 pub unsafe fn allocarray<T>(count: usize) -> *mut T {
@@ -179,12 +179,12 @@ pub unsafe fn free<T>(memptr: *mut T) {
     ::mprotect(base_ptr, total_size, ::Prot::ReadWrite);
 
     // check
-    debug_assert!(::memcmp(canary_ptr as *const u8, CANARY.as_ptr(), mem::size_of_val(&CANARY)));
-    debug_assert!(::memcmp(
+    debug_assert_eq!(::memcmp(canary_ptr as *const u8, CANARY.as_ptr(), mem::size_of_val(&CANARY)), 0);
+    debug_assert_eq!(::memcmp(
         unprotected_ptr.offset(unprotected_size as isize) as *const u8,
         CANARY.as_ptr(),
         mem::size_of_val(&CANARY)
-    ));
+    ), 0);
 
     // free
     ::munlock(unprotected_ptr, unprotected_size);
@@ -207,7 +207,7 @@ mod test {
 
     #[should_panic]
     #[test]
-    fn mprotect_2_test() {
+    fn mprotect_test() {
         use nix::sys::signal;
 
         super::ALLOC_INIT.call_once(|| unsafe { super::alloc_init() });
