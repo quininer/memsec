@@ -67,9 +67,9 @@ pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
 #[cfg(windows)]
 pub unsafe fn memzero<T>(s: *mut T, n: usize) {
     extern "system" {
-        fn SecureZeroMemory(ptr: winapi::PVOID, cnt: winapi::SIZE_T);
+        fn RtlSecureZeroMemory(ptr: winapi::PVOID, cnt: winapi::SIZE_T);
     }
-    SecureZeroMemory(s as winapi::PVOID, n as winapi::SIZE_T);
+    RtlSecureZeroMemory(s as winapi::PVOID, n as winapi::SIZE_T);
 }
 
 
