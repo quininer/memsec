@@ -52,8 +52,8 @@ unsafe fn alloc_aligned<T>(size: usize) -> Option<*mut T> {
 #[cfg(windows)]
 unsafe fn alloc_aligned<T>(size: usize) -> Option<*mut T> {
     Some(::kernel32::VirtualAlloc(
-        ptr::null(),
-        size,
+        ptr::null_mut(),
+        size as ::winapi::SIZE_T,
         ::winapi::MEM_COMMIT | ::winapi::MEM_RESERVE,
         ::winapi::PAGE_READWRITE
     ) as *mut T)
