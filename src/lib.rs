@@ -2,7 +2,6 @@
 #![feature(stmt_expr_attributes)]
 
 extern crate rand;
-extern crate errno;
 #[cfg(unix)] extern crate libc;
 #[cfg(windows)] extern crate kernel32;
 #[cfg(all(unix, test))] extern crate nix;

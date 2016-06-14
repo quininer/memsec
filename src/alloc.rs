@@ -2,7 +2,6 @@ use std::sync::{ Once, ONCE_INIT };
 use std::intrinsics::abort;
 use std::{ mem, ptr };
 use rand::{ thread_rng, Rng, OsRng };
-use errno::{ Errno, set_errno };
 
 
 const GARBAGE_VALUE: u8 = 0xd0;
@@ -92,7 +91,6 @@ unsafe fn _malloc<T>(size: usize) -> Option<*mut T> {
     ALLOC_INIT.call_once(|| alloc_init());
 
     if size >= ::std::usize::MAX - PAGE_SIZE * 4 {
-        set_errno(Errno(::libc::ENOMEM));
         return None;
     }
     if PAGE_SIZE <= mem::size_of_val(&CANARY) || PAGE_SIZE < mem::size_of::<usize>() {
@@ -160,7 +158,6 @@ pub unsafe fn malloc<T>(size: usize) -> Option<*mut T> {
 pub unsafe fn allocarray<T>(count: usize) -> Option<*mut T> {
     let size = mem::size_of::<T>();
     if count > mem::size_of::<usize>() && size >= ::std::usize::MAX / count {
-        set_errno(Errno(::libc::ENOMEM));
         None
     } else {
         malloc(count * size)
