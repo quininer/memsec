@@ -171,10 +171,11 @@ pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
 /// Windows VirtualProtect.
 #[cfg(windows)]
 pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
+    let mut old = std::mem::uninitialized();
     kernel32::VirtualProtect(
         ptr as winapi::LPVOID,
         len as winapi::SIZE_T,
         prot as winapi::DWORD,
-        std::ptr::null_mut()
+        &mut old as winapi::PDWORD
     ) != 0
 }
