@@ -3,6 +3,7 @@
 
 extern crate rand;
 #[cfg(unix)] extern crate libc;
+#[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
 #[cfg(all(unix, test))] extern crate nix;
 
@@ -172,6 +173,6 @@ pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
         ptr as winapi::LPVOID,
         len as winapi::SIZE_T,
         prot as winapi::DWORD,
-        core::mem::uninitialized()
+        std::ptr::null_mut()
     ) != 0
 }
