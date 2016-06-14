@@ -224,3 +224,17 @@ mod test {
         unsafe { ::memzero(x, 16 * mem::size_of::<u8>()) }; // SIGSEGV!
     }
 }
+
+#[test]
+fn alloc_free_aligned() {
+    ALLOC_INIT.call_once(|| unsafe { alloc_init() });
+
+    let x: *mut u8 = unsafe { alloc_aligned(16 * mem::size_of::<u8>()).unwrap() };
+    unsafe { ::memzero(x, 16 * mem::size_of::<u8>()) };
+    assert!(unsafe { ::mprotect(x, 16 * mem::size_of::<u8>(), ::Prot::ReadOnly) });
+    assert_eq!(unsafe { ::memcmp(x, [0; 16].as_ptr(), 16 * mem::size_of::<u8>()) }, 0);
+    assert!(unsafe { ::mprotect(x, 16 * mem::size_of::<u8>(), ::Prot::NoAccess) });
+    assert!(unsafe { ::mprotect(x, 16 * mem::size_of::<u8>(), ::Prot::ReadWrite) });
+    unsafe { ::memzero(x, 16 * mem::size_of::<u8>()) };
+    unsafe { free_aligned(x) };
+}
