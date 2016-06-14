@@ -8,6 +8,7 @@ const GARBAGE_VALUE: u8 = 0xd0;
 const CANARY_SIZE: usize = 16;
 static ALLOC_INIT: Once = ONCE_INIT;
 static mut PAGE_SIZE: usize = 0;
+static mut PAGE_MASK: usize = 0;
 static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 
 // -- alloc init --
@@ -29,6 +30,8 @@ unsafe fn alloc_init() {
     if PAGE_SIZE < CANARY_SIZE || PAGE_SIZE < mem::size_of::<usize>() {
         abort();
     }
+
+    PAGE_MASK = PAGE_SIZE - 1;
 
     match OsRng::new() {
         Ok(mut rng) => rng.fill_bytes(&mut CANARY),
@@ -73,14 +76,12 @@ unsafe fn free_aligned<T>(memptr: *mut T) {
 
 #[inline]
 unsafe fn page_round(size: usize) -> usize {
-    let page_mask = PAGE_SIZE - 1;
-    (size + page_mask) & (!page_mask)
+    (size + PAGE_MASK) & (!PAGE_MASK)
 }
 
 unsafe fn unprotected_ptr_from_user_ptr<T>(memptr: *const T) -> *mut T {
     let canary_ptr = memptr.offset(-(mem::size_of_val(&CANARY) as isize));
-    let page_mask = PAGE_SIZE - 1;
-    let unprotected_ptr_u = canary_ptr as usize & !page_mask;
+    let unprotected_ptr_u = canary_ptr as usize & !PAGE_MASK;
     if unprotected_ptr_u <= PAGE_SIZE * 2 {
         abort();
     }
