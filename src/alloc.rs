@@ -22,9 +22,9 @@ unsafe fn alloc_init() {
     }
 
     #[cfg(windows)] {
-        let si = mem::uninitialized();
-        ::kernel32::GetSystemInfo(si);
-        PAGE_SIZE = ptr::read(si).dwPageSize as usize;
+        let mut si = mem::uninitialized();
+        ::kernel32::GetSystemInfo(&mut si);
+        PAGE_SIZE = si.dwPageSize as usize;
     }
 
     if PAGE_SIZE < CANARY_SIZE || PAGE_SIZE < mem::size_of::<usize>() {
