@@ -95,10 +95,10 @@ unsafe fn dodump<T>(addr: *mut T, len: usize) {
     libc::madvise(addr as *mut libc::c_void, len, libc::MADV_CORE);
 }
 
-#[cfg(not(any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly")))]
+#[cfg(not(any(windows, target_os = "linux", target_os = "freebsd", target_os = "dragonfly")))]
 fn dontdump<T>(_addr: *mut T, _len: usize) { }
 
-#[cfg(not(any(target_os = "linux", target_os = "freebsd", target_os = "dragonfly")))]
+#[cfg(not(any(windows, target_os = "linux", target_os = "freebsd", target_os = "dragonfly")))]
 fn dodump<T>(_addr: *mut T, _len: usize) { }
 
 /// Unix mlock.
