@@ -157,7 +157,9 @@ pub enum Prot {
     #[cfg(windows)] WriteCombine = winapi::PAGE_WRITECOMBINE as isize,
     #[cfg(windows)] RevertToFileMap = winapi::PAGE_REVERT_TO_FILE_MAP as isize,
     #[cfg(windows)] TargetsNoUpdate = winapi::PAGE_TARGETS_NO_UPDATE as isize,
-    #[cfg(windows)] TargetsInvalid = winapi::PAGE_TARGETS_INVALID as isize,
+
+    // winapi::PAGE_REVERT_TO_FILE_MAP == winapi::PAGE_TARGETS_NO_UPDATE
+    // #[cfg(windows)] TargetsInvalid = winapi::PAGE_TARGETS_INVALID as isize,
 }
 
 /// Unix mprotect.
