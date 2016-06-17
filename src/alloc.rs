@@ -94,9 +94,6 @@ unsafe fn _malloc<T>(size: usize) -> Option<*mut T> {
     if size >= ::std::usize::MAX - PAGE_SIZE * 4 {
         return None;
     }
-    if PAGE_SIZE <= mem::size_of_val(&CANARY) || PAGE_SIZE < mem::size_of::<usize>() {
-        abort();
-    }
 
     // aligned alloc ptr
     let size_with_canary = mem::size_of_val(&CANARY) + size;
