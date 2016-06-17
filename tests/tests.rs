@@ -1,6 +1,6 @@
+extern crate libsodium_sys;
 extern crate memsec;
 #[cfg(unix)] extern crate nix;
-extern crate libsodium_sys;
 
 use std::mem;
 

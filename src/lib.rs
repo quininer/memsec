@@ -28,7 +28,7 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
 // -- memset / memzero --
 
 /// General memset.
-#[cfg(not(HAVE_MEMSET_S))]
+#[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "qnx")))]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     let s = s as *mut u8;
     let mut i = 0;
@@ -39,7 +39,7 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 }
 
 /// Call memset_s.
-#[cfg(HAVE_MEMSET_S)]
+#[cfg(any(target_os = "macos", target_os = "ios", target_os = "qnx"))]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     extern {
         fn memset_s(s: *mut libc::c_void, smax: libc::size_t, c: libc::c_int, n: libc::size_t) -> libc::c_int;
@@ -49,13 +49,13 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 
 
 /// General memzero.
-#[cfg(all(unix, not(HAVE_EXPLICIT_BZERO)))]
+#[cfg(not(any(windows, target_os = "freebsd", target_os = "openbsd")))]
 pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     memset(dest, 0, n);
 }
 
 /// Call explicit_bzero.
-#[cfg(all(unix, HAVE_EXPLICIT_BZERO))]
+#[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
 pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     extern {
         fn explicit_bzero(s: *mut libc::c_void, n: libc::size_t);
