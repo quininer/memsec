@@ -1,11 +1,7 @@
 memsec
 ------
 
-~~I have not tested this library in Windows~~
-I tested it on Windows, thanks to my friend [Horo](https://twitter.com/Ken_Ookami_Horo) help,
-but it may contain insecurity implementation.
-
-If the code have any issue, please remind me.
+Rust implementation `libsodium/utils`.
 
 * [x] `memcmp`
 * [x] `memset`/`memzero`
