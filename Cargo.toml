@@ -7,11 +7,17 @@ repository = "https://github.com/quininer/memsec"
 license = "MIT"
 
 [dependencies]
-libc = "0.2"
 rand = "0.3"
+
+[target.'cfg(windows)'.dependencies]
 winapi = "0.2"
 kernel32-sys = "0.2"
 
+[target.'cfg(not(windows))'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
-nix = "0.6"
 libsodium-sys = "0.0.10"
+
+[target.'cfg(not(windows))'.dev-dependencies]
+nix = "0.6"
