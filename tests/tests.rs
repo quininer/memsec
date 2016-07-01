@@ -1,8 +1,12 @@
+#![feature(plugin)]
+#![plugin(quickcheck_macros)]
+
 extern crate libsodium_sys;
 extern crate memsec;
+extern crate quickcheck;
 #[cfg(unix)] extern crate nix;
 
-use std::mem;
+use std::{ mem, cmp };
 
 
 #[test]
@@ -16,21 +20,19 @@ fn memzero_test() {
     assert_eq!(x, [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1]);
 }
 
-#[test]
-fn memcmp_test() {
-    let x = [9; 16];
-    let y = [9; 17];
-    let z = [4; 16];
-
-    assert_eq!(unsafe { memsec::memcmp(x.as_ptr(), y.as_ptr(), mem::size_of_val(&x)) }, 0);
-    assert_eq!(
-        unsafe { memsec::memcmp(x.as_ptr(), z.as_ptr(), mem::size_of_val(&x)) },
-        unsafe { libsodium_sys::sodium_memcmp(
+#[quickcheck]
+fn memcmp(x: Vec<u8>, y: Vec<u8>) -> bool {
+    unsafe {
+        memsec::memcmp(
+            x.as_ptr(),
+            y.as_ptr(),
+            cmp::min(x.len(), y.len()) * mem::size_of::<u8>()
+        ) == libsodium_sys::sodium_memcmp(
             x.as_ptr() as *const u8,
-            z.as_ptr() as *const u8,
-            mem::size_of_val(&x)
-        ) }
-    );
+            y.as_ptr() as *const u8,
+            cmp::min(x.len(), y.len()) * mem::size_of::<u8>()
+        )
+    }
 }
 
 #[test]

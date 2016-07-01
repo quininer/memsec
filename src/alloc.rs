@@ -197,30 +197,29 @@ pub unsafe fn unprotected_mprotect<T>(ptr: *mut T, prot: ::Prot) -> bool {
     ::mprotect(unprotected_ptr, unprotected_size, prot)
 }
 
+
+// -- test --
+
 #[cfg(all(unix, test))]
-mod test {
-    use std::mem;
+#[should_panic]
+#[test]
+fn mprotect_test() {
+    use nix::sys::signal;
 
-    #[should_panic]
-    #[test]
-    fn mprotect_test() {
-        use nix::sys::signal;
+    ALLOC_INIT.call_once(|| unsafe { alloc_init() });
 
-        super::ALLOC_INIT.call_once(|| unsafe { super::alloc_init() });
+    extern fn sigsegv(_: i32) { panic!() }
+    let sigaction = signal::SigAction::new(
+        signal::SigHandler::Handler(sigsegv),
+        signal::SA_SIGINFO,
+        signal::SigSet::empty(),
+    );
+    unsafe { signal::sigaction(signal::SIGSEGV, &sigaction).ok() };
 
-        extern fn sigsegv(_: i32) { panic!() }
-        let sigaction = signal::SigAction::new(
-            signal::SigHandler::Handler(sigsegv),
-            signal::SA_SIGINFO,
-            signal::SigSet::empty(),
-        );
-        unsafe { signal::sigaction(signal::SIGSEGV, &sigaction).ok() };
+    let x: *mut u8 = unsafe { alloc_aligned(16 * mem::size_of::<u8>()).unwrap() };
+    unsafe { ::mprotect(x, 16 * mem::size_of::<u8>(), ::Prot::NoAccess) };
 
-        let x: *mut u8 = unsafe { super::alloc_aligned(16 * mem::size_of::<u8>()).unwrap() };
-        unsafe { ::mprotect(x, 16 * mem::size_of::<u8>(), ::Prot::NoAccess) };
-
-        unsafe { ::memzero(x, 16 * mem::size_of::<u8>()) }; // SIGSEGV!
-    }
+    unsafe { ::memzero(x, 16 * mem::size_of::<u8>()) }; // SIGSEGV!
 }
 
 #[test]

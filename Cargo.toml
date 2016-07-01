@@ -13,11 +13,13 @@ rand = "0.3"
 winapi = "0.2"
 kernel32-sys = "0.2"
 
-[target.'cfg(not(windows))'.dependencies]
+[target.'cfg(unix)'.dependencies]
 libc = "0.2"
 
 [dev-dependencies]
 libsodium-sys = "0.0.10"
+quickcheck = "0.2"
+quickcheck_macros = "0.2"
 
-[target.'cfg(not(windows))'.dev-dependencies]
+[target.'cfg(unix)'.dev-dependencies]
 nix = "0.6"
