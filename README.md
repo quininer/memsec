@@ -1,6 +1,8 @@
 memsec
 ------
 
+[![Build Status](https://travis-ci.org/quininer/memsec.svg?branch=master)](https://travis-ci.org/quininer/memsec)
+
 Rust implementation `libsodium/utils`.
 
 * [x] `memcmp`

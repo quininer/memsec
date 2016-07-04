@@ -19,7 +19,6 @@ libc = "0.2"
 [dev-dependencies]
 libsodium-sys = "0.0.10"
 quickcheck = "0.2"
-quickcheck_macros = "0.2"
 
 [target.'cfg(unix)'.dev-dependencies]
 nix = "0.6"
