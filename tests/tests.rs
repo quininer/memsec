@@ -64,6 +64,7 @@ fn malloc_free_test() {
     unsafe { memsec::free(buf) };
 }
 
+#[cfg_attr(any(target_os = "macos", target_os = "ios"), should_panic)]
 #[test]
 fn malloc_mprotect_1_test() {
     let x: *mut u8 = unsafe { memsec::malloc(16 * mem::size_of::<u8>()).unwrap() };
@@ -77,7 +78,7 @@ fn malloc_mprotect_1_test() {
     unsafe { memsec::free(x) };
 }
 
-#[cfg(unix)]
+#[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
 #[should_panic]
 #[test]
 fn malloc_mprotect_2_test() {

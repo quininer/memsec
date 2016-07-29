@@ -200,7 +200,7 @@ pub unsafe fn unprotected_mprotect<T>(ptr: *mut T, prot: ::Prot) -> bool {
 
 // -- test --
 
-#[cfg(all(unix, test))]
+#[cfg(all(unix, test, not(any(target_os = "macos", target_os = "ios"))))]
 #[should_panic]
 #[test]
 fn mprotect_test() {
@@ -222,6 +222,7 @@ fn mprotect_test() {
     unsafe { ::memzero(x, 16 * mem::size_of::<u8>()) }; // SIGSEGV!
 }
 
+#[cfg_attr(any(target_os = "macos", target_os = "ios"), should_panic)]
 #[test]
 fn alloc_free_aligned() {
     ALLOC_INIT.call_once(|| unsafe { alloc_init() });

@@ -168,10 +168,13 @@ pub enum Prot {
 }
 
 /// Unix mprotect.
-#[cfg(unix)]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 pub unsafe fn mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
     libc::mprotect(ptr as *mut libc::c_void, len, prot as libc::c_int) == 0
 }
+
+#[cfg(any(target_os = "macos", target_os = "ios"))]
+pub unsafe fn mprotect<T>(_: *mut T, _: usize, _: Prot) -> bool { false }
 
 /// Windows VirtualProtect.
 #[cfg(windows)]
