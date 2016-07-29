@@ -1,7 +1,7 @@
 use std::sync::{ Once, ONCE_INIT };
 use std::intrinsics::abort;
 use std::{ mem, ptr };
-use rand::{ thread_rng, Rng, OsRng };
+use rand::{ Rng, OsRng };
 
 
 const GARBAGE_VALUE: u8 = 0xd0;
@@ -33,10 +33,7 @@ unsafe fn alloc_init() {
 
     PAGE_MASK = PAGE_SIZE - 1;
 
-    match OsRng::new() {
-        Ok(mut rng) => rng.fill_bytes(&mut CANARY),
-        Err(_) => thread_rng().fill_bytes(&mut CANARY)
-    }
+    OsRng::new().unwrap().fill_bytes(&mut CANARY);
 }
 
 // -- aligned alloc / aligned free --
