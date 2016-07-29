@@ -5,6 +5,7 @@ extern crate rand;
 #[cfg(unix)] extern crate libc;
 #[cfg(windows)] extern crate winapi;
 #[cfg(windows)] extern crate kernel32;
+#[cfg(any(target_os = "macos", target_os = "ios"))] extern crate mach_o_sys;
 #[cfg(all(unix, test))] extern crate nix;
 
 mod alloc;
@@ -28,7 +29,7 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
 // -- memset / memzero --
 
 /// General memset.
-#[cfg(not(any(target_os = "macos", target_os = "ios", target_os = "qnx")))]
+#[cfg(not(any(target_os = "macos", target_os = "ios")))]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     let s = s as *mut u8;
     let mut i = 0;
@@ -39,12 +40,16 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 }
 
 /// Call memset_s.
-#[cfg(any(target_os = "macos", target_os = "ios", target_os = "qnx"))]
+#[cfg(any(target_os = "macos", target_os = "ios"))]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     extern {
-        fn memset_s(s: *mut libc::c_void, smax: libc::size_t, c: libc::c_int, n: libc::size_t) -> libc::c_int;
+        fn memset_s(s: *mut libc::c_void, smax: mach_o_sys::ranlib::rsize_t, c: libc::c_int, n: mach_o_sys::ranlib::rsize_t)
+            -> mach_o_sys::ranlib::errno_t;
     }
-    memset_s(s as libc::c_void, n, c, n);
+
+    if n > 0 && memset_s(s as *mut libc::c_void, n as mach_o_sys::ranlib::rsize_t, c, n as mach_o_sys::ranlib::rsize_t) != 0 {
+        std::intrinsics::abort();
+    }
 }
 
 
