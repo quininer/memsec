@@ -3,8 +3,8 @@
 //! Result:
 //! ```
 //! running 2 tests
-//! test libsodium_malloc ... bench:       7,369 ns/iter (+/- 1,865)
-//! test memsec_malloc    ... bench:       8,315 ns/iter (+/- 444)
+//! test libsodium_malloc ... bench:       7,213 ns/iter (+/- 623)
+//! test memsec_malloc    ... bench:       6,628 ns/iter (+/- 343)
 //! ```
 
 #![feature(test)]
@@ -21,7 +21,7 @@ use libc::c_void;
 #[bench]
 fn memsec_malloc(b: &mut Bencher) {
     b.iter(|| unsafe {
-        let ptr: *mut u8 = memsec::malloc(1024).unwrap();
+        let ptr: *mut u8 = memsec::malloc(512).unwrap();
         memsec::free(ptr);
     });
 }
@@ -30,7 +30,7 @@ fn memsec_malloc(b: &mut Bencher) {
 fn libsodium_malloc(b: &mut Bencher) {
     unsafe { libsodium_sys::sodium_init() };
     b.iter(|| unsafe {
-        let ptr: *mut u8 = libsodium_sys::sodium_malloc(1024) as *mut u8;
+        let ptr: *mut u8 = libsodium_sys::sodium_malloc(512) as *mut u8;
         libsodium_sys::sodium_free(ptr as *mut c_void);
     });
 }

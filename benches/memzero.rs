@@ -3,8 +3,8 @@
 //! Result:
 //! ```
 //! running 2 tests
-//! test libsodium_memzero_bench ... bench:         403 ns/iter (+/- 125)
-//! test memsec_memzero_bench    ... bench:         364 ns/iter (+/- 55)
+//! test libsodium_memzero_bench ... bench:         384 ns/iter (+/- 27)
+//! test memsec_memzero_bench    ... bench:         377 ns/iter (+/- 36)
 //! ```
 
 
@@ -20,7 +20,7 @@ use std::mem::size_of_val;
 
 #[bench]
 fn memsec_memzero_bench(b: &mut Bencher) {
-    let mut x: [u8; 1024] = [0; 1024];
+    let mut x: [u8; 1025] = [0; 1025];
 
     b.iter(|| unsafe {
         memsec::memzero(x.as_mut_ptr(), size_of_val(&x))
@@ -29,7 +29,7 @@ fn memsec_memzero_bench(b: &mut Bencher) {
 
 #[bench]
 fn libsodium_memzero_bench(b: &mut Bencher) {
-    let mut x: [u8; 1024] = [0; 1024];
+    let mut x: [u8; 1025] = [0; 1025];
 
     b.iter(|| unsafe {
         libsodium_sys::sodium_memzero(x.as_mut_ptr(), size_of_val(&x))
