@@ -32,10 +32,10 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
 #[cfg(not(any(target_os = "macos", target_os = "ios")))]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     let s = s as *mut u8;
-    let mut i = 0;
-    while i < n {
-        *s.offset(i as isize) = c as u8;
-        i += 1;
+    let c = c as u8;
+
+    for i in 0..(n as isize) {
+        ::std::ptr::write_volatile(s.offset(i), c);
     }
 }
 

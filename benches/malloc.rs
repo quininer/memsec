@@ -3,8 +3,8 @@
 //! Result:
 //! ```
 //! running 2 tests
-//! test libsodium_malloc ... bench:       5,789 ns/iter (+/- 13)
-//! test memsec_malloc    ... bench:       5,391 ns/iter (+/- 61)
+//! test libsodium_malloc ... bench:       7,369 ns/iter (+/- 1,865)
+//! test memsec_malloc    ... bench:       8,315 ns/iter (+/- 444)
 //! ```
 
 #![feature(test)]
