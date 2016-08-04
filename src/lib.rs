@@ -1,6 +1,3 @@
-#![feature(core_intrinsics)]
-#![feature(stmt_expr_attributes)]
-
 extern crate rand;
 #[cfg(unix)] extern crate libc;
 #[cfg(windows)] extern crate winapi;
@@ -47,8 +44,12 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
             -> mach_o_sys::ranlib::errno_t;
     }
 
-    if n > 0 && memset_s(s as *mut libc::c_void, n as mach_o_sys::ranlib::rsize_t, c, n as mach_o_sys::ranlib::rsize_t) != 0 {
-        std::intrinsics::abort();
+    if n > 0 {
+        let ret = memset_s(s as *mut libc::c_void, n as mach_o_sys::ranlib::rsize_t, c, n as mach_o_sys::ranlib::rsize_t);
+
+        if (ret != 0) {
+            panic!("memset_s return with error value {}", ret);
+        }
     }
 }
 

@@ -1,5 +1,4 @@
 use std::sync::{ Once, ONCE_INIT };
-use std::intrinsics::abort;
 use std::{ mem, ptr };
 use rand::{ Rng, OsRng };
 
@@ -11,24 +10,28 @@ static mut PAGE_SIZE: usize = 0;
 static mut PAGE_MASK: usize = 0;
 static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 
+// -- get page size --
+#[cfg(unix)]
+#[inline]
+unsafe fn get_page_size() -> usize {
+    return ::libc::sysconf(::libc::_SC_PAGESIZE) as usize;
+}
+
+#[cfg(windows)]
+#[inline]
+unsafe fn get_page_size() -> usize {
+    let mut si = mem::uninitialized();
+    ::kernel32::GetSystemInfo(&mut si);
+    return si.dwPageSize as usize;
+}
+
 // -- alloc init --
 
 unsafe fn alloc_init() {
-    #[cfg(unix)] {
-        let page_size = ::libc::sysconf(::libc::_SC_PAGESIZE);
-        if page_size > 0 {
-            PAGE_SIZE = page_size as usize;
-        }
-    }
-
-    #[cfg(windows)] {
-        let mut si = mem::uninitialized();
-        ::kernel32::GetSystemInfo(&mut si);
-        PAGE_SIZE = si.dwPageSize as usize;
-    }
+    PAGE_SIZE = get_page_size();
 
     if PAGE_SIZE < CANARY_SIZE || PAGE_SIZE < mem::size_of::<usize>() {
-        abort();
+        panic!("page size too small");
     }
 
     PAGE_MASK = PAGE_SIZE - 1;
@@ -80,7 +83,7 @@ unsafe fn unprotected_ptr_from_user_ptr<T>(memptr: *const T) -> *mut T {
     let canary_ptr = memptr.offset(-(mem::size_of_val(&CANARY) as isize));
     let unprotected_ptr_u = canary_ptr as usize & !PAGE_MASK;
     if unprotected_ptr_u <= PAGE_SIZE * 2 {
-        abort();
+        panic!("user address {} too small", memptr as usize);
     }
     unprotected_ptr_u as *mut T
 }
