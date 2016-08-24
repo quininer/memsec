@@ -10,11 +10,13 @@ static mut PAGE_SIZE: usize = 0;
 static mut PAGE_MASK: usize = 0;
 static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 
+
 // -- get page size --
+
 #[cfg(unix)]
 #[inline]
 unsafe fn get_page_size() -> usize {
-    return ::libc::sysconf(::libc::_SC_PAGESIZE) as usize;
+    ::libc::sysconf(::libc::_SC_PAGESIZE) as usize
 }
 
 #[cfg(windows)]
@@ -22,8 +24,9 @@ unsafe fn get_page_size() -> usize {
 unsafe fn get_page_size() -> usize {
     let mut si = mem::uninitialized();
     ::kernel32::GetSystemInfo(&mut si);
-    return si.dwPageSize as usize;
+    si.dwPageSize as usize
 }
+
 
 // -- alloc init --
 
@@ -38,6 +41,7 @@ unsafe fn alloc_init() {
 
     OsRng::new().unwrap().fill_bytes(&mut CANARY);
 }
+
 
 // -- aligned alloc / aligned free --
 
@@ -186,6 +190,7 @@ pub unsafe fn free<T>(memptr: *mut T) {
     ::munlock(unprotected_ptr, unprotected_size);
     free_aligned(base_ptr);
 }
+
 
 // -- unprotected mprotect --
 

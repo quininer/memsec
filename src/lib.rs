@@ -23,6 +23,7 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
     (1 & (d as i32 - 1) >> 8) - 1
 }
 
+
 // -- memset / memzero --
 
 /// General memset.
@@ -31,7 +32,7 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     let s = s as *mut u8;
     let c = c as u8;
 
-    for i in 0..(n as isize) {
+    for i in 0..n as isize {
         ::std::ptr::write_volatile(s.offset(i), c);
     }
 }
@@ -39,13 +40,14 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 /// Call memset_s.
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
+    use mach_o_sys::ranlib;
+
     extern {
-        fn memset_s(s: *mut libc::c_void, smax: mach_o_sys::ranlib::rsize_t, c: libc::c_int, n: mach_o_sys::ranlib::rsize_t)
-            -> mach_o_sys::ranlib::errno_t;
+        fn memset_s(s: *mut libc::c_void, smax: ranlib::rsize_t, c: libc::c_int, n: ranlib::rsize_t) -> ranlib::errno_t;
     }
 
     if n > 0 {
-        let ret = memset_s(s as *mut libc::c_void, n as mach_o_sys::ranlib::rsize_t, c, n as mach_o_sys::ranlib::rsize_t);
+        let ret = memset_s(s as *mut libc::c_void, n as ranlib::rsize_t, c, n as ranlib::rsize_t);
 
         if (ret != 0) {
             panic!("memset_s return with error value {}", ret);
@@ -56,6 +58,7 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 
 /// General memzero.
 #[cfg(not(any(windows, target_os = "freebsd", target_os = "openbsd")))]
+#[inline]
 pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     memset(dest, 0, n);
 }
@@ -120,7 +123,6 @@ pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
     kernel32::VirtualLock(addr as winapi::LPVOID, len as winapi::SIZE_T) != 0
 }
 
-
 /// Unix munlock.
 #[cfg(unix)]
 pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
@@ -135,6 +137,7 @@ pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
     memzero(addr, len);
     kernel32::VirtualUnlock(addr as winapi::LPVOID, len as winapi::SIZE_T) != 0
 }
+
 
 // -- mprotect --
 
@@ -164,7 +167,7 @@ pub enum Prot {
     #[cfg(windows)] RevertToFileMap = winapi::PAGE_REVERT_TO_FILE_MAP as isize,
     #[cfg(windows)] TargetsNoUpdate = winapi::PAGE_TARGETS_NO_UPDATE as isize,
 
-    // winapi::PAGE_REVERT_TO_FILE_MAP == winapi::PAGE_TARGETS_NO_UPDATE
+    // winapi::PAGE_TARGETS_INVALID == winapi::PAGE_TARGETS_NO_UPDATE
     // #[cfg(windows)] TargetsInvalid = winapi::PAGE_TARGETS_INVALID as isize,
 }
 
