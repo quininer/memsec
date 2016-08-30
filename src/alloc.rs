@@ -103,7 +103,7 @@ unsafe fn _malloc<T>(size: usize) -> Option<*mut T> {
     let size_with_canary = mem::size_of_val(&CANARY) + size;
     let unprotected_size = page_round(size_with_canary);
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
-    let base_ptr = match alloc_aligned(total_size) {
+    let base_ptr: *mut u8 = match alloc_aligned(total_size) {
         Some(memptr) => memptr,
         None => return None
     };
@@ -130,7 +130,7 @@ unsafe fn _malloc<T>(size: usize) -> Option<*mut T> {
 
     debug_assert_eq!(unprotected_ptr_from_user_ptr(user_ptr), unprotected_ptr);
 
-    Some(user_ptr)
+    Some(user_ptr as *mut T)
 }
 
 /// Secure malloc.
@@ -169,6 +169,7 @@ pub unsafe fn allocarray<T>(count: usize) -> Option<*mut T> {
 /// Secure free.
 pub unsafe fn free<T>(memptr: *mut T) {
     if memptr.is_null() { return () };
+    let memptr = memptr as *mut u8;
 
     // get unprotected ptr
     let canary_ptr = memptr.offset(-(mem::size_of_val(&CANARY) as isize));

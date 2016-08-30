@@ -46,6 +46,16 @@ fn mlock_munlock_test() {
 }
 
 #[test]
+fn malloc_u64_test() {
+    unsafe {
+        let p: *mut u64 = memsec::malloc(mem::size_of::<u64>()).unwrap();
+        *p = std::u64::MAX;
+        assert_eq!(*p, std::u64::MAX);
+        memsec::free(p);
+    }
+}
+
+#[test]
 fn malloc_free_test() {
     let memptr: *mut u8 = unsafe { memsec::malloc(1).unwrap() };
     assert!(!memptr.is_null());
