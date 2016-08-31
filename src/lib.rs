@@ -72,7 +72,7 @@ pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     explicit_bzero(dest as *mut libc::c_void, n);
 }
 
-/// call SecureZeroMemory.
+/// Call SecureZeroMemory.
 #[cfg(windows)]
 pub unsafe fn memzero<T>(s: *mut T, n: usize) {
     extern "system" {

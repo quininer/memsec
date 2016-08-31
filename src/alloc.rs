@@ -46,10 +46,10 @@ unsafe fn alloc_init() {
 // -- aligned alloc / aligned free --
 
 #[cfg(unix)]
-unsafe fn alloc_aligned<T>(size: usize) -> Option<*mut T> {
+unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
     let mut memptr = mem::uninitialized();
     match ::libc::posix_memalign(&mut memptr, PAGE_SIZE, size) {
-        0 => Some(memptr as *mut T),
+        0 => Some(memptr as *mut u8),
         ::libc::EINVAL => panic!("EINVAL: invalid alignmen. {}", PAGE_SIZE),
         ::libc::ENOMEM => None,
         _ => unreachable!()
@@ -57,22 +57,22 @@ unsafe fn alloc_aligned<T>(size: usize) -> Option<*mut T> {
 }
 
 #[cfg(windows)]
-unsafe fn alloc_aligned<T>(size: usize) -> Option<*mut T> {
+unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
     Some(::kernel32::VirtualAlloc(
         ptr::null_mut(),
         size as ::winapi::SIZE_T,
         ::winapi::MEM_COMMIT | ::winapi::MEM_RESERVE,
         ::winapi::PAGE_READWRITE
-    ) as *mut T)
+    ))
 }
 
 #[cfg(unix)]
-unsafe fn free_aligned<T>(memptr: *mut T) {
+unsafe fn free_aligned(memptr: *mut u8) {
     ::libc::free(memptr as *mut ::libc::c_void);
 }
 
 #[cfg(windows)]
-unsafe fn free_aligned<T>(memptr: *mut T) {
+unsafe fn free_aligned(memptr: *mut u8) {
     ::kernel32::VirtualFree(memptr as ::winapi::LPVOID, 0, ::winapi::MEM_RELEASE);
 }
 
@@ -83,16 +83,16 @@ unsafe fn page_round(size: usize) -> usize {
     (size + PAGE_MASK) & (!PAGE_MASK)
 }
 
-unsafe fn unprotected_ptr_from_user_ptr<T>(memptr: *const T) -> *mut T {
+unsafe fn unprotected_ptr_from_user_ptr(memptr: *const u8) -> *mut u8 {
     let canary_ptr = memptr.offset(-(mem::size_of_val(&CANARY) as isize));
     let unprotected_ptr_u = canary_ptr as usize & !PAGE_MASK;
     if unprotected_ptr_u <= PAGE_SIZE * 2 {
         panic!("user address {} too small", memptr as usize);
     }
-    unprotected_ptr_u as *mut T
+    unprotected_ptr_u as *mut u8
 }
 
-unsafe fn _malloc<T>(size: usize) -> Option<*mut T> {
+unsafe fn _malloc(size: usize) -> Option<*mut u8> {
     ALLOC_INIT.call_once(|| alloc_init());
 
     if size >= ::std::usize::MAX - PAGE_SIZE * 4 {
@@ -103,7 +103,7 @@ unsafe fn _malloc<T>(size: usize) -> Option<*mut T> {
     let size_with_canary = mem::size_of_val(&CANARY) + size;
     let unprotected_size = page_round(size_with_canary);
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
-    let base_ptr: *mut u8 = match alloc_aligned(total_size) {
+    let base_ptr = match alloc_aligned(total_size) {
         Some(memptr) => memptr,
         None => return None
     };
@@ -130,7 +130,7 @@ unsafe fn _malloc<T>(size: usize) -> Option<*mut T> {
 
     debug_assert_eq!(unprotected_ptr_from_user_ptr(user_ptr), unprotected_ptr);
 
-    Some(user_ptr as *mut T)
+    Some(user_ptr)
 }
 
 /// Secure malloc.
@@ -138,7 +138,7 @@ pub unsafe fn malloc<T>(size: usize) -> Option<*mut T> {
     _malloc(size)
         .map(|memptr| {
             ::memset(memptr, GARBAGE_VALUE as i32, size);
-            memptr
+            memptr as *mut T
         })
 }
 
@@ -196,8 +196,9 @@ pub unsafe fn free<T>(memptr: *mut T) {
 // -- unprotected mprotect --
 
 /// Secure mprotect.
-pub unsafe fn unprotected_mprotect<T>(ptr: *mut T, prot: ::Prot) -> bool {
-    let unprotected_ptr = unprotected_ptr_from_user_ptr(ptr);
+pub unsafe fn unprotected_mprotect<T>(memptr: *mut T, prot: ::Prot) -> bool {
+    let memptr = memptr as *mut u8;
+    let unprotected_ptr = unprotected_ptr_from_user_ptr(memptr);
     let base_ptr = unprotected_ptr.offset(-(PAGE_SIZE as isize * 2));
     let unprotected_size = ptr::read(base_ptr as *const usize);
     ::mprotect(unprotected_ptr, unprotected_size, prot)
