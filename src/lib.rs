@@ -13,6 +13,7 @@ pub use alloc::{ unprotected_mprotect, malloc, allocarray, free };
 // -- memcmp --
 
 /// Constant time memcmp.
+#[inline(never)]
 pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
     let b1 = b1 as *const u8;
     let b2 = b2 as *const u8;
@@ -28,6 +29,7 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
 
 /// General memset.
 #[cfg(not(any(target_os = "macos", target_os = "ios")))]
+#[inline(never)]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     let s = s as *mut u8;
     let c = c as u8;
