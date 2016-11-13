@@ -51,7 +51,7 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     if n > 0 {
         let ret = memset_s(s as *mut libc::c_void, n as ranlib::rsize_t, c, n as ranlib::rsize_t);
 
-        if (ret != 0) {
+        if ret != 0 {
             panic!("memset_s return with error value {}", ret);
         }
     }

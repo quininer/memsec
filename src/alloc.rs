@@ -49,12 +49,17 @@ unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
 
 #[cfg(windows)]
 unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
-    Some(::kernel32::VirtualAlloc(
+    let memptr = ::kernel32::VirtualAlloc(
         ptr::null_mut(),
         size as ::winapi::SIZE_T,
         ::winapi::MEM_COMMIT | ::winapi::MEM_RESERVE,
         ::winapi::PAGE_READWRITE
-    ))
+    );
+    if memptr.is_null() {
+        None
+    } else {
+        Some(memptr)
+    }
 }
 
 #[cfg(unix)]
