@@ -59,7 +59,11 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 
 
 /// General memzero.
-#[cfg(not(any(windows, target_os = "freebsd", target_os = "openbsd")))]
+#[cfg(not(any(
+    all(windows, not(target_env = "msvc")),
+    target_os = "freebsd",
+    target_os = "openbsd"
+)))]
 #[inline]
 pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     memset(dest, 0, n);
@@ -75,7 +79,7 @@ pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
 }
 
 /// Call SecureZeroMemory.
-#[cfg(windows)]
+#[cfg(all(windows, not(target_env = "msvc")))]
 pub unsafe fn memzero<T>(s: *mut T, n: usize) {
     extern "system" {
         fn RtlSecureZeroMemory(ptr: winapi::PVOID, cnt: winapi::SIZE_T);
