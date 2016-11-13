@@ -20,6 +20,7 @@ libc = "0.2"
 mach_o_sys = "0.1"
 
 [dev-dependencies]
+libc = "0.2"
 quickcheck = "0.4"
 
 [target.'cfg(unix)'.dev-dependencies]
