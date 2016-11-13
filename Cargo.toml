@@ -20,8 +20,8 @@ libc = "0.2"
 mach_o_sys = "0.1"
 
 [dev-dependencies]
-libsodium-sys = "0.0"
 quickcheck = "0.4"
 
 [target.'cfg(unix)'.dev-dependencies]
+libsodium-sys = "0.0"
 nix = "0.7"

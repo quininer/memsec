@@ -11,8 +11,8 @@
 
 extern crate test;
 extern crate libc;
-extern crate libsodium_sys;
 extern crate memsec;
+#[cfg(unix)] extern crate libsodium_sys;
 
 use test::Bencher;
 use libc::c_void;
@@ -26,6 +26,7 @@ fn memsec_malloc(b: &mut Bencher) {
     });
 }
 
+#[cfg(unix)]
 #[bench]
 fn libsodium_malloc(b: &mut Bencher) {
     unsafe { libsodium_sys::sodium_init() };

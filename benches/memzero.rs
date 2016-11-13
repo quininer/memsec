@@ -11,8 +11,8 @@
 #![feature(test)]
 
 extern crate test;
-extern crate libsodium_sys;
 extern crate memsec;
+#[cfg(unix)] extern crate libsodium_sys;
 
 use test::Bencher;
 use std::mem::size_of_val;
@@ -27,6 +27,7 @@ fn memsec_memzero_bench(b: &mut Bencher) {
     });
 }
 
+#[cfg(unix)]
 #[bench]
 fn libsodium_memzero_bench(b: &mut Bencher) {
     let mut x: [u8; 1025] = [0; 1025];

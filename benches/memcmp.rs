@@ -15,8 +15,8 @@
 
 extern crate test;
 extern crate libc;
-extern crate libsodium_sys;
 extern crate memsec;
+#[cfg(unix)] extern crate libsodium_sys;
 
 use test::Bencher;
 use std::mem::size_of_val;
@@ -43,6 +43,7 @@ fn memsec_memcmp_nq_bench(b: &mut Bencher) {
     });
 }
 
+#[cfg(unix)]
 #[bench]
 fn libsodium_memcmp_eq_bench(b: &mut Bencher) {
     let x: [u8; 1025] = [9; 1025];
@@ -53,6 +54,7 @@ fn libsodium_memcmp_eq_bench(b: &mut Bencher) {
     });
 }
 
+#[cfg(unix)]
 #[bench]
 fn libsodium_memcmp_nq_bench(b: &mut Bencher) {
     let x: [u8; 1025] = [8; 1025];
