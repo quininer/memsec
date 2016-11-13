@@ -6,7 +6,6 @@ rust:
 cache: cargo
 os:
     - linux
-    - windows
     - osx
 
 install:
