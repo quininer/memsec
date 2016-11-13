@@ -86,31 +86,26 @@ pub unsafe fn memzero<T>(s: *mut T, n: usize) {
 
 // -- mlock / munlock --
 
-#[cfg(target_os = "linux")]
+
+#[cfg(not(windows))]
+#[inline]
 unsafe fn dontdump<T>(addr: *mut T, len: usize) {
+    #[cfg(target_os = "linux")]
     libc::madvise(addr as *mut libc::c_void, len, libc::MADV_DONTDUMP);
-}
 
-#[cfg(target_os = "linux")]
-unsafe fn dodump<T>(addr: *mut T, len: usize) {
-    libc::madvise(addr as *mut libc::c_void, len, libc::MADV_DODUMP);
-}
-
-#[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
-unsafe fn dontdump<T>(addr: *mut T, len: usize) {
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
     libc::madvise(addr as *mut libc::c_void, len, libc::MADV_NOCORE);
 }
 
-#[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
+#[cfg(not(windows))]
+#[inline]
 unsafe fn dodump<T>(addr: *mut T, len: usize) {
+    #[cfg(target_os = "linux")]
+    libc::madvise(addr as *mut libc::c_void, len, libc::MADV_DODUMP);
+
+    #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
     libc::madvise(addr as *mut libc::c_void, len, libc::MADV_CORE);
 }
-
-#[cfg(not(any(windows, target_os = "linux", target_os = "freebsd", target_os = "dragonfly")))]
-fn dontdump<T>(_addr: *mut T, _len: usize) { }
-
-#[cfg(not(any(windows, target_os = "linux", target_os = "freebsd", target_os = "dragonfly")))]
-fn dodump<T>(_addr: *mut T, _len: usize) { }
 
 /// Unix mlock.
 #[cfg(unix)]

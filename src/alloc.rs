@@ -11,27 +11,18 @@ static mut PAGE_MASK: usize = 0;
 static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 
 
-// -- get page size --
-
-#[cfg(unix)]
-#[inline]
-unsafe fn get_page_size() -> usize {
-    ::libc::sysconf(::libc::_SC_PAGESIZE) as usize
-}
-
-#[cfg(windows)]
-#[inline]
-unsafe fn get_page_size() -> usize {
-    let mut si = mem::uninitialized();
-    ::kernel32::GetSystemInfo(&mut si);
-    si.dwPageSize as usize
-}
-
-
 // -- alloc init --
 
 unsafe fn alloc_init() {
-    PAGE_SIZE = get_page_size();
+    #[cfg(unix)] {
+        PAGE_SIZE = ::libc::sysconf(::libc::_SC_PAGESIZE) as usize;
+    }
+
+    #[cfg(windows)] {
+        let mut si = mem::uninitialized();
+        ::kernel32::GetSystemInfo(&mut si);
+        PAGE_SIZE = si.dwPageSize as usize;
+    }
 
     if PAGE_SIZE < CANARY_SIZE || PAGE_SIZE < mem::size_of::<usize>() {
         panic!("page size too small");
