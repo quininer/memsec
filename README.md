@@ -1,5 +1,6 @@
-memsec [![Build Status](https://travis-ci.org/quininer/memsec.svg?branch=master)](https://travis-ci.org/quininer/memsec)
-------
+# memsec
+[![Build Status](https://travis-ci.org/quininer/memsec.svg?branch=master)](https://travis-ci.org/quininer/memsec)
+[![Appveyor](https://ci.appveyor.com/api/projects/status/1w0qtl0grjfu0uac?svg=true)](https://ci.appveyor.com/project/quininer/memsec)
 
 Rust implementation `libsodium/utils`.
 
