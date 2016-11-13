@@ -58,7 +58,7 @@ unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
     if memptr.is_null() {
         None
     } else {
-        Some(memptr)
+        Some(memptr as *mut u8)
     }
 }
 
@@ -230,7 +230,7 @@ unsafe fn _mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
 /// Windows VirtualProtect.
 #[cfg(windows)]
 unsafe fn _mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
-    let mut old = std::mem::uninitialized();
+    let mut old = ::std::mem::uninitialized();
     ::kernel32::VirtualProtect(
         ptr as ::winapi::LPVOID,
         len as ::winapi::SIZE_T,
