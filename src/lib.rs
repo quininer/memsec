@@ -42,17 +42,16 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 /// Call memset_s.
 #[cfg(any(target_os = "macos", target_os = "ios"))]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
-    use mach_o_sys::ranlib;
+    use mach_o_sys::ranlib::{ rsize_t, errno_t };
 
     extern {
-        fn memset_s(s: *mut libc::c_void, smax: ranlib::rsize_t, c: libc::c_int, n: ranlib::rsize_t) -> ranlib::errno_t;
+        fn memset_s(s: *mut libc::c_void, smax: rsize_t, c: libc::c_int, n: rsize_t) -> errno_t;
     }
 
     if n > 0 {
-        let ret = memset_s(s as *mut libc::c_void, n as ranlib::rsize_t, c, n as ranlib::rsize_t);
-
-        if ret != 0 {
-            panic!("memset_s return with error value {}", ret);
+        match memset_s(s as *mut libc::c_void, n as rsize_t, c, n as rsize_t) {
+            0 => (),
+            ret => panic!("memset_s return with error value {}", ret)
         }
     }
 }

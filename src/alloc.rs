@@ -80,7 +80,7 @@ unsafe fn page_round(size: usize) -> usize {
 }
 
 unsafe fn unprotected_ptr_from_user_ptr(memptr: *const u8) -> *mut u8 {
-    let canary_ptr = memptr.offset(-(mem::size_of_val(&CANARY) as isize));
+    let canary_ptr = memptr.offset(-(CANARY_SIZE as isize));
     let unprotected_ptr_u = canary_ptr as usize & !PAGE_MASK;
     if unprotected_ptr_u <= PAGE_SIZE * 2 {
         panic!("user address {} too small", memptr as usize);
@@ -96,7 +96,7 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
     }
 
     // aligned alloc ptr
-    let size_with_canary = mem::size_of_val(&CANARY) + size;
+    let size_with_canary = CANARY_SIZE + size;
     let unprotected_size = page_round(size_with_canary);
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
     let base_ptr = match alloc_aligned(total_size) {
@@ -107,10 +107,10 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
     // canary offset
     let unprotected_ptr = base_ptr.offset(PAGE_SIZE as isize * 2);
     _mprotect(base_ptr.offset(PAGE_SIZE as isize), PAGE_SIZE, Prot::NoAccess);
-    ptr::copy(
+    ptr::copy_nonoverlapping(
         CANARY.as_ptr(),
         unprotected_ptr.offset(unprotected_size as isize) as *mut u8,
-        mem::size_of_val(&CANARY)
+        CANARY_SIZE
     );
 
     // mprotect ptr
@@ -119,12 +119,12 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
     let canary_ptr = unprotected_ptr
         .offset(page_round(size_with_canary) as isize)
         .offset(-(size_with_canary as isize));
-    let user_ptr = canary_ptr.offset(mem::size_of_val(&CANARY) as isize);
-    ptr::copy(CANARY.as_ptr(), canary_ptr as *mut u8, mem::size_of_val(&CANARY));
+    let user_ptr = canary_ptr.offset(CANARY_SIZE as isize);
+    ptr::copy_nonoverlapping(CANARY.as_ptr(), canary_ptr as *mut u8, CANARY_SIZE);
     ptr::write(base_ptr as *mut usize, unprotected_size);
     _mprotect(base_ptr, PAGE_SIZE, Prot::ReadOnly);
 
-    debug_assert_eq!(unprotected_ptr_from_user_ptr(user_ptr), unprotected_ptr);
+    assert_eq!(unprotected_ptr_from_user_ptr(user_ptr), unprotected_ptr);
 
     Some(user_ptr)
 }
@@ -168,7 +168,7 @@ pub unsafe fn free<T>(memptr: *mut T) {
     let memptr = memptr as *mut u8;
 
     // get unprotected ptr
-    let canary_ptr = memptr.offset(-(mem::size_of_val(&CANARY) as isize));
+    let canary_ptr = memptr.offset(-(CANARY_SIZE as isize));
     let unprotected_ptr = unprotected_ptr_from_user_ptr(memptr);
     let base_ptr = unprotected_ptr.offset(-(PAGE_SIZE as isize * 2));
     let unprotected_size = ptr::read(base_ptr as *const usize);
@@ -176,11 +176,11 @@ pub unsafe fn free<T>(memptr: *mut T) {
     _mprotect(base_ptr, total_size, Prot::ReadWrite);
 
     // check
-    debug_assert_eq!(::memcmp(canary_ptr as *const u8, CANARY.as_ptr(), mem::size_of_val(&CANARY)), 0);
-    debug_assert_eq!(::memcmp(
+    assert_eq!(::memcmp(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE), 0);
+    assert_eq!(::memcmp(
         unprotected_ptr.offset(unprotected_size as isize) as *const u8,
         CANARY.as_ptr(),
-        mem::size_of_val(&CANARY)
+        CANARY_SIZE
     ), 0);
 
     // free
@@ -267,22 +267,22 @@ fn mprotect_test() {
     );
     unsafe { signal::sigaction(signal::SIGSEGV, &sigaction).ok() };
 
-    let x: *mut u8 = unsafe { alloc_aligned(16 * mem::size_of::<u8>()).unwrap() };
-    unsafe { _mprotect(x, 16 * mem::size_of::<u8>(), Prot::NoAccess) };
+    let x: *mut u8 = unsafe { alloc_aligned(16).unwrap() };
+    unsafe { _mprotect(x, 16, Prot::NoAccess) };
 
-    unsafe { ::memzero(x, 16 * mem::size_of::<u8>()) }; // SIGSEGV!
+    unsafe { ::memzero(x, 16) }; // SIGSEGV!
 }
 
 #[test]
 fn alloc_free_aligned() {
     ALLOC_INIT.call_once(|| unsafe { alloc_init() });
 
-    let x: *mut u8 = unsafe { alloc_aligned(16 * mem::size_of::<u8>()).unwrap() };
-    unsafe { ::memzero(x, 16 * mem::size_of::<u8>()) };
-    assert!(unsafe { _mprotect(x, 16 * mem::size_of::<u8>(), Prot::ReadOnly) });
-    assert_eq!(unsafe { ::memcmp(x, [0; 16].as_ptr(), 16 * mem::size_of::<u8>()) }, 0);
-    assert!(unsafe { _mprotect(x, 16 * mem::size_of::<u8>(), Prot::NoAccess) });
-    assert!(unsafe { _mprotect(x, 16 * mem::size_of::<u8>(), Prot::ReadWrite) });
-    unsafe { ::memzero(x, 16 * mem::size_of::<u8>()) };
+    let x: *mut u8 = unsafe { alloc_aligned(16).unwrap() };
+    unsafe { ::memzero(x, 16) };
+    assert!(unsafe { _mprotect(x, 16, Prot::ReadOnly) });
+    assert_eq!(unsafe { ::memcmp(x, [0; 16].as_ptr(), 16) }, 0);
+    assert!(unsafe { _mprotect(x, 16, Prot::NoAccess) });
+    assert!(unsafe { _mprotect(x, 16, Prot::ReadWrite) });
+    unsafe { ::memzero(x, 16) };
     unsafe { free_aligned(x) };
 }

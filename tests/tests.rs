@@ -38,7 +38,7 @@ fn memcmp_test() {
             let memsec_result = memsec::memcmp(
                 x.as_ptr(),
                 y.as_ptr(),
-                cmp::min(x.len(), y.len()) * mem::size_of::<u8>()
+                cmp::min(x.len(), y.len())
             ) == 0;
             let libc_result = libc::memcmp(
                 x.as_ptr() as *const libc::c_void,
@@ -84,21 +84,21 @@ fn malloc_free_test() {
     assert!(memptr.is_none());
 
     let buf: *mut u8 = unsafe { memsec::allocarray(16).unwrap() };
-    unsafe { memsec::memzero(buf, 16 * mem::size_of::<u8>()) };
-    assert_eq!(unsafe { memsec::memcmp(buf, [0; 16].as_ptr(), 16 * mem::size_of::<u8>()) }, 0);
+    unsafe { memsec::memzero(buf, 16) };
+    assert_eq!(unsafe { memsec::memcmp(buf, [0; 16].as_ptr(), 16) }, 0);
     unsafe { memsec::free(buf) };
 }
 
 #[test]
 fn malloc_mprotect_1_test() {
-    let x: *mut u8 = unsafe { memsec::malloc(16 * mem::size_of::<u8>()).unwrap() };
+    let x: *mut u8 = unsafe { memsec::malloc(16).unwrap() };
 
-    unsafe { memsec::memset(x, 1, 16 * mem::size_of::<u8>()) };
+    unsafe { memsec::memset(x, 1, 16) };
     assert!(unsafe { memsec::mprotect(x, memsec::Prot::ReadOnly) });
-    assert_eq!(unsafe { memsec::memcmp(x, [1; 16].as_ptr(), 16 * mem::size_of::<u8>()) }, 0);
+    assert_eq!(unsafe { memsec::memcmp(x, [1; 16].as_ptr(), 16) }, 0);
     assert!(unsafe { memsec::mprotect(x, memsec::Prot::NoAccess) });
     assert!(unsafe { memsec::mprotect(x, memsec::Prot::ReadWrite) });
-    unsafe { memsec::memzero(x, 16 * mem::size_of::<u8>()) };
+    unsafe { memsec::memzero(x, 16) };
     unsafe { memsec::free(x) };
 }
 
@@ -117,7 +117,7 @@ fn malloc_mprotect_2_test() {
 
     let x: *mut u8 = unsafe { memsec::allocarray(16).unwrap() };
 
-    unsafe { memsec::memset(x, 1, 16 * mem::size_of::<u8>()) };
+    unsafe { memsec::memset(x, 1, 16) };
     unsafe { memsec::mprotect(x, memsec::Prot::ReadOnly) };
-    unsafe { memsec::memzero(x, 16 * mem::size_of::<u8>()) }; // SIGSEGV!
+    unsafe { memsec::memzero(x, 16) }; // SIGSEGV!
 }
