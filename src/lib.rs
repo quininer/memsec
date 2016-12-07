@@ -17,17 +17,12 @@ pub use alloc::{ Prot, mprotect, malloc, allocarray, free };
 pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
     let b1 = b1 as *const u8;
     let b2 = b2 as *const u8;
-    let (mut res, mut done) = (0, 0);
-    for i in 0..len as isize {
-        let b1 = *b1.offset(i) as i32;
-        let b2 = *b2.offset(i) as i32;
-        let lt = b1.wrapping_sub(b2) >> 8;
-        let gt = b2.wrapping_sub(b1) >> 8;
-        let cmp = lt.wrapping_sub(gt);
-        res |= cmp & !done;
-        done |= lt | gt;
+    let mut res = 0;
+    for i in (0..len as isize).rev() {
+        let diff = *b1.offset(i) as i32 - *b2.offset(i) as i32;
+        res = (res & (((diff - 1) & !diff) >> 8)) | diff;
     }
-    res
+    ((res - 1) >> 8) + (res >> 8) + 1
 }
 
 
