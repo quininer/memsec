@@ -102,7 +102,7 @@ fn malloc_mprotect_1_test() {
     unsafe { memsec::free(x) };
 }
 
-#[cfg(all(unix, not(any(target_os = "macos", target_os = "ios"))))]
+#[cfg(all(unix, target_os = "linux"))]
 #[should_panic]
 #[test]
 fn malloc_mprotect_2_test() {

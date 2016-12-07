@@ -109,7 +109,7 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
     _mprotect(base_ptr.offset(PAGE_SIZE as isize), PAGE_SIZE, Prot::NoAccess);
     ptr::copy_nonoverlapping(
         CANARY.as_ptr(),
-        unprotected_ptr.offset(unprotected_size as isize) as *mut u8,
+        unprotected_ptr.offset(unprotected_size as isize),
         CANARY_SIZE
     );
 
@@ -120,7 +120,7 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
         .offset(page_round(size_with_canary) as isize)
         .offset(-(size_with_canary as isize));
     let user_ptr = canary_ptr.offset(CANARY_SIZE as isize);
-    ptr::copy_nonoverlapping(CANARY.as_ptr(), canary_ptr as *mut u8, CANARY_SIZE);
+    ptr::copy_nonoverlapping(CANARY.as_ptr(), canary_ptr, CANARY_SIZE);
     ptr::write(base_ptr as *mut usize, unprotected_size);
     _mprotect(base_ptr, PAGE_SIZE, Prot::ReadOnly);
 
@@ -251,7 +251,7 @@ pub unsafe fn mprotect<T>(memptr: *mut T, prot: Prot) -> bool {
 
 // -- test --
 
-#[cfg(all(unix, test, not(any(target_os = "macos", target_os = "ios"))))]
+#[cfg(all(unix, test, target_os = "linux"))]
 #[should_panic]
 #[test]
 fn mprotect_test() {
