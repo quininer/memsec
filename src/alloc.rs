@@ -76,7 +76,7 @@ unsafe fn free_aligned(memptr: *mut u8) {
 
 #[inline]
 unsafe fn page_round(size: usize) -> usize {
-    (size + PAGE_MASK) & (!PAGE_MASK)
+    (size + PAGE_MASK) & !PAGE_MASK
 }
 
 unsafe fn unprotected_ptr_from_user_ptr(memptr: *const u8) -> *mut u8 {
@@ -103,22 +103,13 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
         Some(memptr) => memptr,
         None => return None
     };
-
-    // canary offset
     let unprotected_ptr = base_ptr.offset(PAGE_SIZE as isize * 2);
-    _mprotect(base_ptr.offset(PAGE_SIZE as isize), PAGE_SIZE, Prot::NoAccess);
-    ptr::copy_nonoverlapping(
-        CANARY.as_ptr(),
-        unprotected_ptr.offset(unprotected_size as isize),
-        CANARY_SIZE
-    );
 
     // mprotect ptr
+    _mprotect(base_ptr.offset(PAGE_SIZE as isize), PAGE_SIZE, Prot::NoAccess);
     _mprotect(unprotected_ptr.offset(unprotected_size as isize), PAGE_SIZE, Prot::NoAccess);
     ::mlock(unprotected_ptr, unprotected_size);
-    let canary_ptr = unprotected_ptr
-        .offset(page_round(size_with_canary) as isize)
-        .offset(-(size_with_canary as isize));
+    let canary_ptr = unprotected_ptr.offset(unprotected_size as isize - size_with_canary as isize);
     let user_ptr = canary_ptr.offset(CANARY_SIZE as isize);
     ptr::copy_nonoverlapping(CANARY.as_ptr(), canary_ptr, CANARY_SIZE);
     ptr::write(base_ptr as *mut usize, unprotected_size);
@@ -177,11 +168,6 @@ pub unsafe fn free<T>(memptr: *mut T) {
 
     // check
     assert_eq!(::memcmp(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE), 0);
-    assert_eq!(::memcmp(
-        unprotected_ptr.offset(unprotected_size as isize) as *const u8,
-        CANARY.as_ptr(),
-        CANARY_SIZE
-    ), 0);
 
     // free
     ::munlock(unprotected_ptr, unprotected_size);
