@@ -133,7 +133,7 @@ pub unsafe fn malloc<T>(size: usize) -> Option<*mut T> {
 ///
 /// ```
 /// use std::{ slice, mem };
-/// use memsec::{ allocarray, free, memzero, memset, memcmp };
+/// use memsec::{ allocarray, free, memzero, memset, memeq };
 ///
 /// let memptr: *mut u8 = unsafe { allocarray(8).unwrap() };
 /// let array = unsafe { slice::from_raw_parts_mut(memptr, 8) };
@@ -141,7 +141,7 @@ pub unsafe fn malloc<T>(size: usize) -> Option<*mut T> {
 /// unsafe { memzero(memptr, 8) };
 /// assert_eq!(array, [0; 8]);
 /// array[0] = 1;
-/// assert_eq!(unsafe { memcmp(memptr, [1, 0, 0, 0, 0, 0, 0, 0].as_ptr(), 8) }, 0);
+/// assert!(unsafe { memeq(memptr, [1, 0, 0, 0, 0, 0, 0, 0].as_ptr(), 8) });
 /// unsafe { free(memptr) };
 /// ```
 pub unsafe fn allocarray<T>(count: usize) -> Option<*mut T> {
@@ -167,7 +167,7 @@ pub unsafe fn free<T>(memptr: *mut T) {
     _mprotect(base_ptr, total_size, Prot::ReadWrite);
 
     // check
-    assert_eq!(::memcmp(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE), 0);
+    assert!(::memeq(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE));
 
     // free
     ::munlock(unprotected_ptr, unprotected_size);
@@ -266,7 +266,7 @@ fn alloc_free_aligned() {
     let x: *mut u8 = unsafe { alloc_aligned(16).unwrap() };
     unsafe { ::memzero(x, 16) };
     assert!(unsafe { _mprotect(x, 16, Prot::ReadOnly) });
-    assert_eq!(unsafe { ::memcmp(x, [0; 16].as_ptr(), 16) }, 0);
+    assert!(unsafe { ::memeq(x, [0; 16].as_ptr(), 16) });
     assert!(unsafe { _mprotect(x, 16, Prot::NoAccess) });
     assert!(unsafe { _mprotect(x, 16, Prot::ReadWrite) });
     unsafe { ::memzero(x, 16) };

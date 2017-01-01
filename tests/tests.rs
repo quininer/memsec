@@ -94,7 +94,7 @@ fn malloc_free_test() {
 
     let buf: *mut u8 = unsafe { memsec::allocarray(16).unwrap() };
     unsafe { memsec::memzero(buf, 16) };
-    assert_eq!(unsafe { memsec::memcmp(buf, [0; 16].as_ptr(), 16) }, 0);
+    assert!(unsafe { memsec::memeq(buf, [0; 16].as_ptr(), 16) });
     unsafe { memsec::free(buf) };
 }
 
@@ -104,7 +104,7 @@ fn malloc_mprotect_1_test() {
 
     unsafe { memsec::memset(x, 1, 16) };
     assert!(unsafe { memsec::mprotect(x, memsec::Prot::ReadOnly) });
-    assert_eq!(unsafe { memsec::memcmp(x, [1; 16].as_ptr(), 16) }, 0);
+    assert!(unsafe { memsec::memeq(x, [1; 16].as_ptr(), 16) });
     assert!(unsafe { memsec::mprotect(x, memsec::Prot::NoAccess) });
     assert!(unsafe { memsec::mprotect(x, memsec::Prot::ReadWrite) });
     unsafe { memsec::memzero(x, 16) };
