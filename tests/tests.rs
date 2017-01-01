@@ -20,6 +20,26 @@ fn memzero_test() {
 }
 
 #[test]
+fn memeq_test() {
+    fn memeq(x: Vec<u8>, y: Vec<u8>) -> bool {
+        unsafe {
+            let memsec_output = memsec::memeq(
+                x.as_ptr(),
+                y.as_ptr(),
+                cmp::min(x.len(), y.len())
+            );
+            let libc_output = libc::memcmp(
+                x.as_ptr() as *const libc::c_void,
+                y.as_ptr() as *const libc::c_void,
+                cmp::min(x.len(), y.len())
+            ) == 0;
+            memsec_output == libc_output
+        }
+    }
+    quickcheck(memeq as fn(Vec<u8>, Vec<u8>) -> bool);
+}
+
+#[test]
 fn memcmp_test() {
     fn memcmp(x: Vec<u8>, y: Vec<u8>) -> bool {
         unsafe {

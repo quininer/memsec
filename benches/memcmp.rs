@@ -24,6 +24,26 @@ use libc::c_void;
 
 
 #[bench]
+fn memsec_memeq_eq_bench(b: &mut Bencher) {
+    let x: [u8; 1025] = [9; 1025];
+    let y: [u8; 1025] = [9; 1025];
+
+    b.iter(|| unsafe {
+        memsec::memeq(x.as_ptr(), y.as_ptr(), size_of_val(&y))
+    });
+}
+
+#[bench]
+fn memsec_memeq_nq_bench(b: &mut Bencher) {
+    let x: [u8; 1025] = [8; 1025];
+    let z: [u8; 1025] = [3; 1025];
+
+    b.iter(|| unsafe {
+        memsec::memeq(x.as_ptr(), z.as_ptr(), size_of_val(&z))
+    });
+}
+
+#[bench]
 fn memsec_memcmp_eq_bench(b: &mut Bencher) {
     let x: [u8; 1025] = [9; 1025];
     let y: [u8; 1025] = [9; 1025];
