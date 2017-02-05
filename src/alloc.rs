@@ -37,6 +37,7 @@ unsafe fn alloc_init() {
 // -- aligned alloc / aligned free --
 
 #[cfg(unix)]
+#[inline]
 unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
     let mut memptr = mem::uninitialized();
     match ::libc::posix_memalign(&mut memptr, PAGE_SIZE, size) {
@@ -48,6 +49,7 @@ unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
 }
 
 #[cfg(windows)]
+#[inline]
 unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
     let memptr = ::kernel32::VirtualAlloc(
         ptr::null_mut(),
@@ -63,12 +65,14 @@ unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
 }
 
 #[cfg(unix)]
-unsafe fn free_aligned(memptr: *mut u8) {
+#[inline]
+unsafe fn free_aligned(memptr: *mut u8, _size: usize) {
     ::libc::free(memptr as *mut ::libc::c_void);
 }
 
 #[cfg(windows)]
-unsafe fn free_aligned(memptr: *mut u8) {
+#[inline]
+unsafe fn free_aligned(memptr: *mut u8, _size: usize) {
     ::kernel32::VirtualFree(memptr as ::winapi::LPVOID, 0, ::winapi::MEM_RELEASE);
 }
 
@@ -171,14 +175,14 @@ pub unsafe fn free<T>(memptr: *mut T) {
 
     // free
     ::munlock(unprotected_ptr, unprotected_size);
-    free_aligned(base_ptr);
+    free_aligned(base_ptr, total_size);
 }
 
 
 // -- mprotect --
 
 /// Prot enum.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Prot {
     #[cfg(unix)] NoAccess = ::libc::PROT_NONE as isize,
     #[cfg(unix)] ReadOnly = ::libc::PROT_READ as isize,
@@ -237,7 +241,7 @@ pub unsafe fn mprotect<T>(memptr: *mut T, prot: Prot) -> bool {
 
 // -- test --
 
-#[cfg(all(unix, test, target_os = "linux"))]
+#[cfg(all(test, target_os = "linux"))]
 #[should_panic]
 #[test]
 fn mprotect_test() {
@@ -270,5 +274,5 @@ fn alloc_free_aligned() {
     assert!(unsafe { _mprotect(x, 16, Prot::NoAccess) });
     assert!(unsafe { _mprotect(x, 16, Prot::ReadWrite) });
     unsafe { ::memzero(x, 16) };
-    unsafe { free_aligned(x) };
+    unsafe { free_aligned(x, 16) };
 }

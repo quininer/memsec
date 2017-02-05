@@ -55,6 +55,7 @@ fn memcmp_test() {
             );
             (memsec_output > 0) == (libc_output > 0)
                 && (memsec_output < 0) == (libc_output < 0)
+                && (memsec_output == 0) == (libc_output == 0)
         }
     }
     quickcheck(memcmp as fn(Vec<u8>, Vec<u8>) -> bool);
@@ -111,7 +112,7 @@ fn malloc_mprotect_1_test() {
     unsafe { memsec::free(x) };
 }
 
-#[cfg(all(unix, target_os = "linux"))]
+#[cfg(target_os = "linux")]
 #[should_panic]
 #[test]
 fn malloc_mprotect_2_test() {
