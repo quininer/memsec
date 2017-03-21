@@ -1,0 +1,22 @@
+[package]
+name = "memsec-test"
+version = "0.1.0"
+authors = ["quininer kel <quininer@live.com>"]
+publish = false
+
+[dependencies.memsec]
+path = ".."
+default-features = false
+
+[dev-dependencies]
+libc = "0.2"
+quickcheck = "0.4"
+
+[target.'cfg(unix)'.dev-dependencies]
+libsodium-sys = "0.0"
+nix = "0.7"
+
+[features]
+default = [ "alloc", "use_os" ]
+use_os = [ "memsec/use_os" ]
+alloc = [ "memsec/alloc" ]

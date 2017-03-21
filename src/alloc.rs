@@ -1,3 +1,7 @@
+//! alloc
+
+#![cfg(feature = "alloc")]
+
 use std::sync::{ Once, ONCE_INIT };
 use std::{ mem, ptr };
 use rand::{ Rng, OsRng };
@@ -134,20 +138,6 @@ pub unsafe fn malloc<T>(size: usize) -> Option<*mut T> {
 }
 
 /// Alloc array.
-///
-/// ```
-/// use std::{ slice, mem };
-/// use memsec::{ allocarray, free, memzero, memset, memeq };
-///
-/// let memptr: *mut u8 = unsafe { allocarray(8).unwrap() };
-/// let array = unsafe { slice::from_raw_parts_mut(memptr, 8) };
-/// assert_eq!(array, [0xd0; 8]);
-/// unsafe { memzero(memptr, 8) };
-/// assert_eq!(array, [0; 8]);
-/// array[0] = 1;
-/// assert!(unsafe { memeq(memptr, [1, 0, 0, 0, 0, 0, 0, 0].as_ptr(), 8) });
-/// unsafe { free(memptr) };
-/// ```
 pub unsafe fn allocarray<T>(count: usize) -> Option<*mut T> {
     let size = mem::size_of::<T>();
     if count > mem::size_of::<usize>() && size >= ::std::usize::MAX / count {
@@ -236,43 +226,4 @@ pub unsafe fn mprotect<T>(memptr: *mut T, prot: Prot) -> bool {
     let base_ptr = unprotected_ptr.offset(-(PAGE_SIZE as isize * 2));
     let unprotected_size = ptr::read(base_ptr as *const usize);
     _mprotect(unprotected_ptr, unprotected_size, prot)
-}
-
-
-// -- test --
-
-#[cfg(all(test, target_os = "linux"))]
-#[should_panic]
-#[test]
-fn mprotect_test() {
-    use nix::sys::signal;
-
-    ALLOC_INIT.call_once(|| unsafe { alloc_init() });
-
-    extern fn sigsegv(_: i32) { panic!() }
-    let sigaction = signal::SigAction::new(
-        signal::SigHandler::Handler(sigsegv),
-        signal::SA_SIGINFO,
-        signal::SigSet::empty(),
-    );
-    unsafe { signal::sigaction(signal::SIGSEGV, &sigaction).ok() };
-
-    let x: *mut u8 = unsafe { alloc_aligned(16).unwrap() };
-    unsafe { _mprotect(x, 16, Prot::NoAccess) };
-
-    unsafe { ::memzero(x, 16) }; // SIGSEGV!
-}
-
-#[test]
-fn alloc_free_aligned() {
-    ALLOC_INIT.call_once(|| unsafe { alloc_init() });
-
-    let x: *mut u8 = unsafe { alloc_aligned(16).unwrap() };
-    unsafe { ::memzero(x, 16) };
-    assert!(unsafe { _mprotect(x, 16, Prot::ReadOnly) });
-    assert!(unsafe { ::memeq(x, [0; 16].as_ptr(), 16) });
-    assert!(unsafe { _mprotect(x, 16, Prot::NoAccess) });
-    assert!(unsafe { _mprotect(x, 16, Prot::ReadWrite) });
-    unsafe { ::memzero(x, 16) };
-    unsafe { free_aligned(x, 16) };
 }

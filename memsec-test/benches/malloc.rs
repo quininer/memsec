@@ -1,10 +1,12 @@
+#![cfg(feature = "alloc")]
+
 //! malloc bench
 //!
 //! Result:
 //! ```
 //! running 2 tests
-//! test libsodium_malloc ... bench:       7,450 ns/iter (+/- 911)
-//! test memsec_malloc    ... bench:       6,271 ns/iter (+/- 751)
+//! test libsodium_malloc ... bench:       7,336 ns/iter (+/- 80)
+//! test memsec_malloc    ... bench:       6,882 ns/iter (+/- 29)
 //! ```
 
 #![feature(test)]

@@ -3,14 +3,14 @@
 //! Result:
 //! ```
 //! running 6 tests
-//! test libc_memcmp_eq_bench      ... bench:          32 ns/iter (+/- 4)
+//! test libc_memcmp_eq_bench      ... bench:          33 ns/iter (+/- 0)
 //! test libc_memcmp_nq_bench      ... bench:           5 ns/iter (+/- 0)
-//! test libsodium_memcmp_eq_bench ... bench:         603 ns/iter (+/- 36)
-//! test libsodium_memcmp_nq_bench ... bench:         602 ns/iter (+/- 27)
-//! test memsec_memcmp_eq_bench    ... bench:         996 ns/iter (+/- 124)
-//! test memsec_memcmp_nq_bench    ... bench:         996 ns/iter (+/- 19)
-//! test memsec_memeq_eq_bench     ... bench:         458 ns/iter (+/- 51)
-//! test memsec_memeq_nq_bench     ... bench:         461 ns/iter (+/- 54)
+//! test libsodium_memcmp_eq_bench ... bench:         601 ns/iter (+/- 14)
+//! test libsodium_memcmp_nq_bench ... bench:         604 ns/iter (+/- 92)
+//! test memsec_memcmp_eq_bench    ... bench:         996 ns/iter (+/- 6)
+//! test memsec_memcmp_nq_bench    ... bench:         996 ns/iter (+/- 50)
+//! test memsec_memeq_eq_bench     ... bench:         458 ns/iter (+/- 3)
+//! test memsec_memeq_nq_bench     ... bench:         458 ns/iter (+/- 3)
 //! ```
 
 #![feature(test)]

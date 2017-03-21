@@ -3,8 +3,8 @@
 //! Result:
 //! ```
 //! running 2 tests
-//! test libsodium_memzero_bench ... bench:         372 ns/iter (+/- 9)
-//! test memsec_memzero_bench    ... bench:         356 ns/iter (+/- 5)
+//! test libsodium_memzero_bench ... bench:         371 ns/iter (+/- 3)
+//! test memsec_memzero_bench    ... bench:         356 ns/iter (+/- 2)
 //! ```
 
 

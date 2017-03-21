@@ -1,14 +1,21 @@
-extern crate rand;
-#[cfg(unix)] extern crate libc;
-#[cfg(windows)] extern crate winapi;
-#[cfg(windows)] extern crate kernel32;
-#[cfg(any(target_os = "macos", target_os = "ios"))] extern crate mach_o_sys;
-#[cfg(all(unix, test))] extern crate nix;
+#![cfg_attr(not(feature = "use_os"), no_std)]
 
+#[cfg(feature = "alloc")] extern crate rand;
+#[cfg(all(unix, feature = "use_os"))] extern crate libc;
+
+#[cfg(all(windows, feature = "use_os"))] extern crate winapi;
+#[cfg(all(windows, feature = "use_os"))] extern crate kernel32;
+
+#[cfg(all(any(target_os = "macos", target_os = "ios"), feature = "use_os"))] extern crate mach_o_sys;
+
+mod mlock;
 mod alloc;
 
-use std::ptr;
-pub use alloc::{ Prot, mprotect, malloc, allocarray, free };
+#[cfg(feature = "use_os")] use std::ptr;
+#[cfg(not(feature = "use_os"))] use core::ptr;
+
+#[cfg(feature = "use_os")] pub use mlock::{ mlock, munlock };
+#[cfg(feature = "alloc")] pub use alloc::{ Prot, mprotect, malloc, allocarray, free };
 
 
 // -- memcmp --
@@ -44,7 +51,10 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
 // -- memset / memzero --
 
 /// General memset.
-#[cfg(not(any(target_os = "macos", target_os = "ios")))]
+#[cfg(any(
+    not(any(target_os = "macos", target_os = "ios")),
+    not(feature = "use_os")
+))]
 #[inline(never)]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     let s = s as *mut u8;
@@ -56,7 +66,10 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 }
 
 /// Call memset_s.
-#[cfg(any(target_os = "macos", target_os = "ios"))]
+#[cfg(all(
+    any(target_os = "macos", target_os = "ios"),
+    feature = "use_os"
+))]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     use mach_o_sys::ranlib::{ rsize_t, errno_t };
 
@@ -74,18 +87,24 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 
 
 /// General memzero.
-#[cfg(not(any(
-    all(windows, not(target_env = "msvc")),
-    target_os = "freebsd",
-    target_os = "openbsd"
-)))]
+#[cfg(any(
+    not(any(
+        all(windows, not(target_env = "msvc")),
+        target_os = "freebsd",
+        target_os = "openbsd"
+    )),
+    not(feature = "use_os")
+))]
 #[inline]
 pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     memset(dest, 0, n);
 }
 
 /// Call explicit_bzero.
-#[cfg(any(target_os = "freebsd", target_os = "openbsd"))]
+#[cfg(all(
+    any(target_os = "freebsd", target_os = "openbsd"),
+    feature = "use_os"
+))]
 pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     extern {
         fn explicit_bzero(s: *mut libc::c_void, n: libc::size_t);
@@ -94,62 +113,13 @@ pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
 }
 
 /// Call SecureZeroMemory.
-#[cfg(all(windows, not(target_env = "msvc")))]
+#[cfg(all(
+    windows, not(target_env = "msvc"),
+    feature = "use_os"
+))]
 pub unsafe fn memzero<T>(s: *mut T, n: usize) {
     extern "system" {
         fn RtlSecureZeroMemory(ptr: winapi::PVOID, cnt: winapi::SIZE_T);
     }
     RtlSecureZeroMemory(s as winapi::PVOID, n as winapi::SIZE_T);
-}
-
-
-// -- mlock / munlock --
-
-
-#[cfg(not(windows))]
-#[inline]
-unsafe fn dontdump<T>(addr: *mut T, len: usize) {
-    #[cfg(target_os = "linux")]
-    libc::madvise(addr as *mut libc::c_void, len, libc::MADV_DONTDUMP);
-
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
-    libc::madvise(addr as *mut libc::c_void, len, libc::MADV_NOCORE);
-}
-
-#[cfg(not(windows))]
-#[inline]
-unsafe fn dodump<T>(addr: *mut T, len: usize) {
-    #[cfg(target_os = "linux")]
-    libc::madvise(addr as *mut libc::c_void, len, libc::MADV_DODUMP);
-
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
-    libc::madvise(addr as *mut libc::c_void, len, libc::MADV_CORE);
-}
-
-/// Unix mlock.
-#[cfg(unix)]
-pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
-    dontdump(addr, len);
-    libc::mlock(addr as *mut libc::c_void, len) == 0
-}
-
-/// Windows VirtualLock.
-#[cfg(windows)]
-pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
-    kernel32::VirtualLock(addr as winapi::LPVOID, len as winapi::SIZE_T) != 0
-}
-
-/// Unix munlock.
-#[cfg(unix)]
-pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
-    memzero(addr, len);
-    dodump(addr, len);
-    libc::munlock(addr as *mut libc::c_void, len) == 0
-}
-
-/// Windows VirtualUnlock.
-#[cfg(windows)]
-pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
-    memzero(addr, len);
-    kernel32::VirtualUnlock(addr as winapi::LPVOID, len as winapi::SIZE_T) != 0
 }
