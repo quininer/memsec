@@ -1,6 +1,6 @@
 #![cfg(feature = "alloc")]
 
-extern crate nix;
+#[cfg(target_os = "linux")] extern crate nix;
 extern crate memsec;
 
 use std::{ slice, mem };
