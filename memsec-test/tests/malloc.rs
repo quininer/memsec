@@ -18,46 +18,52 @@ fn malloc_u64_test() {
 
 #[test]
 fn malloc_free_test() {
-    let memptr: *mut u8 = unsafe { memsec::malloc(1).unwrap() };
-    assert!(!memptr.is_null());
-    unsafe { memsec::free(memptr) };
+    unsafe {
+        let memptr: *mut u8 = memsec::malloc(1).unwrap();
+        assert!(!memptr.is_null());
+        memsec::free(memptr);
 
-    let memptr: *mut u8 = unsafe { memsec::malloc(0).unwrap() };
-    assert!(!memptr.is_null());
-    unsafe { memsec::free(memptr) };
+        let memptr: *mut u8 = memsec::malloc(0).unwrap();
+        assert!(!memptr.is_null());
+        memsec::free(memptr);
 
-    let memptr = unsafe { memsec::malloc::<u8>(std::usize::MAX - 1) };
-    assert!(memptr.is_none());
+        let memptr = memsec::malloc::<u8>(std::usize::MAX - 1);
+        assert!(memptr.is_none());
 
-    let buf: *mut u8 = unsafe { memsec::allocarray(16).unwrap() };
-    unsafe { memsec::memzero(buf, 16) };
-    assert!(unsafe { memsec::memeq(buf, [0; 16].as_ptr(), 16) });
-    unsafe { memsec::free(buf) };
+        let buf: *mut u8 = memsec::allocarray(16).unwrap();
+        memsec::memzero(buf, 16);
+        assert!(memsec::memeq(buf, [0; 16].as_ptr(), 16));
+        memsec::free(buf);
+    }
 }
 
 #[test]
 fn allocarray_test() {
-    let memptr: *mut u8 = unsafe { memsec::allocarray(8).unwrap() };
-    let array = unsafe { slice::from_raw_parts_mut(memptr, 8) };
-    assert_eq!(array, [0xd0; 8]);
-    unsafe { memsec::memzero(memptr, 8) };
-    assert_eq!(array, [0; 8]);
-    array[0] = 1;
-    assert!(unsafe { memsec::memeq(memptr, [1, 0, 0, 0, 0, 0, 0, 0].as_ptr(), 8) });
-    unsafe { memsec::free(memptr) };
+    unsafe {
+        let memptr: *mut u8 = memsec::allocarray(8).unwrap();
+        let array = slice::from_raw_parts_mut(memptr, 8);
+        assert_eq!(array, [0xd0; 8]);
+        memsec::memzero(memptr, 8);
+        assert_eq!(array, [0; 8]);
+        array[0] = 1;
+        assert!(memsec::memeq(memptr, [1, 0, 0, 0, 0, 0, 0, 0].as_ptr(), 8));
+        memsec::free(memptr);
+    }
 }
 
 #[test]
 fn malloc_mprotect_1_test() {
-    let x: *mut u8 = unsafe { memsec::malloc(16).unwrap() };
+    unsafe {
+        let x: *mut u8 = memsec::malloc(16).unwrap();
 
-    unsafe { memsec::memset(x, 1, 16) };
-    assert!(unsafe { memsec::mprotect(x, memsec::Prot::ReadOnly) });
-    assert!(unsafe { memsec::memeq(x, [1; 16].as_ptr(), 16) });
-    assert!(unsafe { memsec::mprotect(x, memsec::Prot::NoAccess) });
-    assert!(unsafe { memsec::mprotect(x, memsec::Prot::ReadWrite) });
-    unsafe { memsec::memzero(x, 16) };
-    unsafe { memsec::free(x) };
+        memsec::memset(x, 1, 16);
+        assert!(memsec::mprotect(x, memsec::Prot::ReadOnly));
+        assert!(memsec::memeq(x, [1; 16].as_ptr(), 16));
+        assert!(memsec::mprotect(x, memsec::Prot::NoAccess));
+        assert!(memsec::mprotect(x, memsec::Prot::ReadWrite));
+        memsec::memzero(x, 16);
+        memsec::free(x);
+    }
 }
 
 #[cfg(target_os = "linux")]
@@ -73,9 +79,11 @@ fn malloc_mprotect_2_test() {
     );
     unsafe { signal::sigaction(signal::SIGSEGV, &sigaction).ok() };
 
-    let x: *mut u8 = unsafe { memsec::allocarray(16).unwrap() };
+    unsafe {
+        let x: *mut u8 = memsec::allocarray(16).unwrap();
 
-    unsafe { memsec::memset(x, 1, 16) };
-    unsafe { memsec::mprotect(x, memsec::Prot::ReadOnly) };
-    unsafe { memsec::memzero(x, 16) }; // SIGSEGV!
+        memsec::memset(x, 1, 16);
+        memsec::mprotect(x, memsec::Prot::ReadOnly);
+        memsec::memzero(x, 16); // SIGSEGV!
+    }
 }

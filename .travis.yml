@@ -16,5 +16,6 @@ install:
     - export PKG_CONFIG_PATH=$HOME/installed_libsodium/lib/pkgconfig:$PKG_CONFIG_PATH
     - export LD_LIBRARY_PATH=$HOME/installed_libsodium/lib:$LD_LIBRARY_PATH
 script:
+    - cd memsec-test; cargo test --no-default-features
     - cd memsec-test; cargo test --release
     - if [ "$TRAVIS_RUST_VERSION" = "nightly" ]; then cd memsec-test; cargo bench; fi
