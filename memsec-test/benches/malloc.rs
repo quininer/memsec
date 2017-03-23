@@ -5,8 +5,8 @@
 //! Result:
 //! ```
 //! running 2 tests
-//! test libsodium_malloc ... bench:       7,336 ns/iter (+/- 80)
-//! test memsec_malloc    ... bench:       6,882 ns/iter (+/- 29)
+//! test libsodium_malloc ... bench:       7,331 ns/iter (+/- 23)
+//! test memsec_malloc    ... bench:       6,677 ns/iter (+/- 20)
 //! ```
 
 #![feature(test)]
@@ -17,7 +17,6 @@ extern crate memsec;
 #[cfg(unix)] extern crate libsodium_sys;
 
 use test::Bencher;
-use libc::c_void;
 
 
 #[bench]
@@ -34,6 +33,6 @@ fn libsodium_malloc(b: &mut Bencher) {
     unsafe { libsodium_sys::sodium_init() };
     b.iter(|| unsafe {
         let ptr: *mut u8 = libsodium_sys::sodium_malloc(512) as *mut u8;
-        libsodium_sys::sodium_free(ptr as *mut c_void);
+        libsodium_sys::sodium_free(ptr as *mut libc::c_void);
     });
 }

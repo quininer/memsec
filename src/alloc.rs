@@ -132,7 +132,7 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
 pub unsafe fn malloc<T>(size: usize) -> Option<*mut T> {
     _malloc(size)
         .map(|memptr| {
-            ::memset(memptr, GARBAGE_VALUE as i32, size);
+            ptr::write_bytes(memptr, GARBAGE_VALUE, size);
             memptr as *mut T
         })
 }

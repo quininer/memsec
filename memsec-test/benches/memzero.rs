@@ -3,8 +3,9 @@
 //! Result:
 //! ```
 //! running 2 tests
-//! test libsodium_memzero_bench ... bench:         371 ns/iter (+/- 3)
-//! test memsec_memzero_bench    ... bench:         356 ns/iter (+/- 2)
+//! test libsodium_memzero_bench ... bench:         407 ns/iter (+/- 42)
+//! test memsec_memzero_bench    ... bench:         356 ns/iter (+/- 0)
+//! test ptr_write_zeroed_bench  ... bench:         354 ns/iter (+/- 0)
 //! ```
 
 
@@ -17,6 +18,15 @@ extern crate memsec;
 use test::Bencher;
 use std::mem::size_of_val;
 
+#[bench]
+fn ptr_write_zeroed_bench(b: &mut Bencher) {
+    type U8ARRAY = [u8; 1025];
+    let mut x: U8ARRAY = [0; 1025];
+
+    b.iter(|| unsafe {
+        ::std::ptr::write_volatile(&mut x, ::std::mem::zeroed());
+    });
+}
 
 #[bench]
 fn memsec_memzero_bench(b: &mut Bencher) {
