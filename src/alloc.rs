@@ -3,7 +3,7 @@
 #![cfg(feature = "alloc")]
 
 use std::sync::{ Once, ONCE_INIT };
-use std::{ mem, ptr };
+use std::{ mem, ptr, process };
 use rand::{ Rng, OsRng };
 
 
@@ -29,7 +29,7 @@ unsafe fn alloc_init() {
     }
 
     if PAGE_SIZE < CANARY_SIZE || PAGE_SIZE < mem::size_of::<usize>() {
-        panic!("page size too small");
+        process::abort();
     }
 
     PAGE_MASK = PAGE_SIZE - 1;
@@ -46,7 +46,7 @@ unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
     let mut memptr = mem::uninitialized();
     match ::libc::posix_memalign(&mut memptr, PAGE_SIZE, size) {
         0 => Some(memptr as *mut u8),
-        ::libc::EINVAL => panic!("EINVAL: invalid alignmen. {}", PAGE_SIZE),
+        ::libc::EINVAL => process::abort(),
         ::libc::ENOMEM => None,
         _ => unreachable!()
     }
@@ -91,7 +91,7 @@ unsafe fn unprotected_ptr_from_user_ptr(memptr: *const u8) -> *mut u8 {
     let canary_ptr = memptr.offset(-(CANARY_SIZE as isize));
     let unprotected_ptr_u = canary_ptr as usize & !PAGE_MASK;
     if unprotected_ptr_u <= PAGE_SIZE * 2 {
-        panic!("user address {} too small", memptr as usize);
+        process::abort();
     }
     unprotected_ptr_u as *mut u8
 }

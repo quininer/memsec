@@ -3,9 +3,9 @@
 //! Result:
 //! ```
 //! running 2 tests
-//! test libsodium_memzero_bench ... bench:         407 ns/iter (+/- 42)
-//! test memsec_memzero_bench    ... bench:         356 ns/iter (+/- 0)
-//! test ptr_write_zeroed_bench  ... bench:         354 ns/iter (+/- 0)
+//! test libsodium_memzero_bench ... bench:          25 ns/iter (+/- 10)
+//! test memsec_memzero_bench    ... bench:         364 ns/iter (+/- 44)
+//! test ptr_write_zeroed_bench  ... bench:         362 ns/iter (+/- 205)
 //! ```
 
 

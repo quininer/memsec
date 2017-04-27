@@ -7,6 +7,7 @@ repository = "https://github.com/quininer/memsec"
 keywords = [ "protection", "memory", "secure" ]
 documentation = "https://docs.rs/memsec/"
 license = "MIT"
+categories = [ "no-std", "memory-management" ]
 
 [badges]
 travis-ci = { repository = "quininer/memsec" }

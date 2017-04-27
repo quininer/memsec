@@ -77,11 +77,8 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
         fn memset_s(s: *mut libc::c_void, smax: rsize_t, c: libc::c_int, n: rsize_t) -> errno_t;
     }
 
-    if n > 0 {
-        match memset_s(s as *mut libc::c_void, n as rsize_t, c, n as rsize_t) {
-            0 => (),
-            ret => panic!("memset_s return with error value {}", ret)
-        }
+    if n > 0 && memset_s(s as *mut libc::c_void, n as rsize_t, c, n as rsize_t) != 0 {
+        std::process::abort()
     }
 }
 
