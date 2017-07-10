@@ -132,6 +132,7 @@ fn libc_memcmp_nq_bench(b: &mut Bencher) {
 }
 
 
+#[cfg(unix)]
 #[link = "libsodium"]
 extern "C" {
     fn sodium_compare(b1_: *const u8, b2_: *const u8, len: size_t) -> c_int;

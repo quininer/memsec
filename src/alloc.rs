@@ -17,6 +17,7 @@ static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 
 // -- alloc init --
 
+#[inline]
 unsafe fn alloc_init() {
     #[cfg(unix)] {
         PAGE_SIZE = ::libc::sysconf(::libc::_SC_PAGESIZE) as usize;
@@ -87,6 +88,7 @@ unsafe fn page_round(size: usize) -> usize {
     (size + PAGE_MASK) & !PAGE_MASK
 }
 
+#[inline]
 unsafe fn unprotected_ptr_from_user_ptr(memptr: *const u8) -> *mut u8 {
     let canary_ptr = memptr.offset(-(CANARY_SIZE as isize));
     let unprotected_ptr_u = canary_ptr as usize & !PAGE_MASK;
@@ -120,7 +122,7 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
     let canary_ptr = unprotected_ptr.offset(unprotected_size as isize - size_with_canary as isize);
     let user_ptr = canary_ptr.offset(CANARY_SIZE as isize);
     ptr::copy_nonoverlapping(CANARY.as_ptr(), canary_ptr, CANARY_SIZE);
-    ptr::write(base_ptr as *mut usize, unprotected_size);
+    ptr::write_unaligned(base_ptr as *mut usize, unprotected_size);
     _mprotect(base_ptr, PAGE_SIZE, Prot::ReadOnly);
 
     assert_eq!(unprotected_ptr_from_user_ptr(user_ptr), unprotected_ptr);
@@ -129,6 +131,7 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
 }
 
 /// Secure malloc.
+#[inline]
 pub unsafe fn malloc<T>(size: usize) -> Option<*mut T> {
     _malloc(size)
         .map(|memptr| {
@@ -138,6 +141,7 @@ pub unsafe fn malloc<T>(size: usize) -> Option<*mut T> {
 }
 
 /// Alloc array.
+#[inline]
 pub unsafe fn allocarray<T>(count: usize) -> Option<*mut T> {
     let size = mem::size_of::<T>();
     if count > mem::size_of::<usize>() && size >= ::std::usize::MAX / count {
@@ -203,12 +207,14 @@ pub enum Prot {
 
 /// Unix mprotect.
 #[cfg(unix)]
+#[inline]
 unsafe fn _mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
     ::libc::mprotect(ptr as *mut ::libc::c_void, len, prot as ::libc::c_int) == 0
 }
 
 /// Windows VirtualProtect.
 #[cfg(windows)]
+#[inline]
 unsafe fn _mprotect<T>(ptr: *mut T, len: usize, prot: Prot) -> bool {
     let mut old = ::std::mem::uninitialized();
     ::kernel32::VirtualProtect(

@@ -13,7 +13,7 @@ libc = "0.2"
 quickcheck = "0.4"
 
 [target.'cfg(unix)'.dev-dependencies]
-libsodium-sys = "0.0"
+libsodium-sys = "0.0.15"
 nix = "0.8"
 
 [features]
