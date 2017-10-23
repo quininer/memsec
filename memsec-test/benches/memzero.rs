@@ -1,14 +1,3 @@
-//! memzero bench
-//!
-//! Result:
-//! ```
-//! running 2 tests
-//! test libsodium_memzero_bench ... bench:          25 ns/iter (+/- 10)
-//! test memsec_memzero_bench    ... bench:         364 ns/iter (+/- 44)
-//! test ptr_write_zeroed_bench  ... bench:         362 ns/iter (+/- 205)
-//! ```
-
-
 #![feature(test)]
 
 extern crate test;

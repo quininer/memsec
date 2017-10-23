@@ -1,20 +1,3 @@
-//! memcmp bench
-//!
-//! Result:
-//! ```
-//! running 6 tests
-//! test libc_memcmp_eq_bench       ... bench:          33 ns/iter (+/- 3)
-//! test libc_memcmp_nq_bench       ... bench:           6 ns/iter (+/- 2)
-//! test libsodium_compare_eq_bench ... bench:       1,531 ns/iter (+/- 458)
-//! test libsodium_compare_nq_bench ... bench:       1,443 ns/iter (+/- 218)
-//! test libsodium_memcmp_eq_bench  ... bench:         630 ns/iter (+/- 127)
-//! test libsodium_memcmp_nq_bench  ... bench:         628 ns/iter (+/- 134)
-//! test memsec_memcmp_eq_bench     ... bench:       1,093 ns/iter (+/- 230)
-//! test memsec_memcmp_nq_bench     ... bench:       1,040 ns/iter (+/- 85)
-//! test memsec_memeq_eq_bench      ... bench:         466 ns/iter (+/- 53)
-//! test memsec_memeq_nq_bench      ... bench:         500 ns/iter (+/- 182)
-//! ```
-
 #![feature(test)]
 
 extern crate test;

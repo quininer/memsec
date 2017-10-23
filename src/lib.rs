@@ -1,4 +1,5 @@
 #![cfg_attr(not(feature = "use_os"), no_std)]
+#![cfg_attr(feature = "nightly", feature(core_intrinsics))]
 
 #[cfg(feature = "alloc")] extern crate rand;
 #[cfg(all(unix, feature = "use_os"))] extern crate libc;
@@ -41,8 +42,8 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
     let b2 = b2 as *const u8;
     let mut res = 0;
     for i in (0..len as isize).rev() {
-        let diff = ptr::read_volatile(b1.offset(i)) as i32
-            - ptr::read_volatile(b2.offset(i)) as i32;
+        let diff = i32::from(ptr::read_volatile(b1.offset(i)))
+            - i32::from(ptr::read_volatile(b2.offset(i)));
         res = (res & (((diff - 1) & !diff) >> 8)) | diff;
     }
     ((res - 1) >> 8) + (res >> 8) + 1
@@ -52,14 +53,29 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
 // -- memset / memzero --
 
 /// General memset.
+#[cfg(feature = "nightly")]
+#[cfg(any(not(apple), not(feature = "use_os")))]
+#[inline(never)]
+pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
+    #[cfg(feature = "use_os")]
+    use std::intrinsics;
+
+    #[cfg(not(feature = "use_os"))]
+    use core::intrinsics;
+
+    intrinsics::volatile_set_memory(s as *mut u8, c as u8, n);
+}
+
+/// General memset.
+#[cfg(not(feature = "nightly"))]
 #[cfg(any(not(apple), not(feature = "use_os")))]
 #[inline(never)]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     let s = s as *mut u8;
     let c = c as u8;
 
-    for i in 0..n as isize {
-        ptr::write_volatile(s.offset(i), c);
+    for i in 0..n {
+        ptr::write_volatile(s.offset(i as isize), c);
     }
 }
 

@@ -13,5 +13,6 @@ build: false
 test_script:
   - 'cd memsec-test'
   - 'cargo test --no-default-features'
-  - 'cargo test --release'
-  - 'cargo bench'
+  - 'cargo test'
+  - 'cargo test --features nightly'
+  - 'cargo bench --features nightly'

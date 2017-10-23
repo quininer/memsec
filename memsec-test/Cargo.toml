@@ -14,9 +14,10 @@ quickcheck = "0.4"
 
 [target.'cfg(unix)'.dev-dependencies]
 libsodium-sys = "0.0.15"
-nix = "0.8"
+nix = "0.9"
 
 [features]
 default = [ "alloc", "use_os" ]
+nightly = [ "memsec/nightly" ]
 use_os = [ "memsec/use_os" ]
 alloc = [ "memsec/alloc" ]
