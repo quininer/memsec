@@ -3,7 +3,7 @@
 #![cfg(feature = "use_os")]
 
 
-/// Unix mlock.
+/// Unix `mlock`.
 #[cfg(unix)]
 pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
     #[cfg(target_os = "linux")]
@@ -15,13 +15,16 @@ pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
     ::libc::mlock(addr as *mut ::libc::c_void, len) == 0
 }
 
-/// Windows VirtualLock.
+/// Windows `VirtualLock`.
 #[cfg(windows)]
 pub unsafe fn mlock<T>(addr: *mut T, len: usize) -> bool {
-    ::kernel32::VirtualLock(addr as ::winapi::LPVOID, len as ::winapi::SIZE_T) != 0
+    ::winapi::um::memoryapi::VirtualLock(
+        addr as ::winapi::shared::minwindef::LPVOID,
+        len as ::winapi::shared::basetsd::SIZE_T
+    ) != 0
 }
 
-/// Unix munlock.
+/// Unix `munlock`.
 #[cfg(unix)]
 pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
     ::memzero(addr, len);
@@ -35,9 +38,12 @@ pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
     ::libc::munlock(addr as *mut ::libc::c_void, len) == 0
 }
 
-/// Windows VirtualUnlock.
+/// Windows `VirtualUnlock`.
 #[cfg(windows)]
 pub unsafe fn munlock<T>(addr: *mut T, len: usize) -> bool {
     ::memzero(addr, len);
-    ::kernel32::VirtualUnlock(addr as ::winapi::LPVOID, len as ::winapi::SIZE_T) != 0
+    ::winapi::um::memoryapi::VirtualUnlock(
+        addr as ::winapi::shared::minwindef::LPVOID,
+        len as ::winapi::shared::basetsd::SIZE_T
+    ) != 0
 }

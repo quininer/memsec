@@ -10,10 +10,10 @@ default-features = false
 
 [dev-dependencies]
 libc = "0.2"
-quickcheck = "0.4"
+quickcheck = "0.5"
 
 [target.'cfg(unix)'.dev-dependencies]
-libsodium-sys = "0.0.15"
+libsodium-sys = "0.0.16"
 nix = "0.9"
 
 [features]

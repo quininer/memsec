@@ -5,7 +5,6 @@
 #[cfg(all(unix, feature = "use_os"))] extern crate libc;
 
 #[cfg(all(windows, feature = "use_os"))] extern crate winapi;
-#[cfg(all(windows, feature = "use_os"))] extern crate kernel32;
 
 #[cfg(all(apple, feature = "use_os"))]
 extern crate mach_o_sys;
@@ -22,7 +21,7 @@ mod alloc;
 
 // -- memcmp --
 
-/// Constant time memeq.
+/// Constant time `memeq`.
 #[inline(never)]
 pub unsafe fn memeq<T>(b1: *const T, b2: *const T, len: usize) -> bool {
     let b1 = b1 as *const u8;
@@ -35,7 +34,7 @@ pub unsafe fn memeq<T>(b1: *const T, b2: *const T, len: usize) -> bool {
 }
 
 
-/// Constant time memcmp.
+/// Constant time `memcmp`.
 #[inline(never)]
 pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
     let b1 = b1 as *const u8;
@@ -52,7 +51,7 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
 
 // -- memset / memzero --
 
-/// General memset.
+/// General `memset`.
 #[cfg(feature = "nightly")]
 #[cfg(any(not(apple), not(feature = "use_os")))]
 #[inline(never)]
@@ -66,7 +65,7 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     intrinsics::volatile_set_memory(s as *mut u8, c as u8, n);
 }
 
-/// General memset.
+/// General `memset`.
 #[cfg(not(feature = "nightly"))]
 #[cfg(any(not(apple), not(feature = "use_os")))]
 #[inline(never)]
@@ -79,7 +78,7 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     }
 }
 
-/// Call memset_s.
+/// Call `memset_s`.
 #[cfg(all(apple, feature = "use_os"))]
 pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     use libc::{ c_void, c_int };
@@ -95,7 +94,7 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 }
 
 
-/// General memzero.
+/// General `memzero`.
 #[cfg(any(
     not(any(
         all(windows, not(target_env = "msvc")),
@@ -108,7 +107,7 @@ pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     memset(dest, 0, n);
 }
 
-/// Call explicit_bzero.
+/// Call `explicit_bzero`.
 #[cfg(all(any(freebsdlike, netbsdlike), feature = "use_os"))]
 pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     extern {
@@ -117,11 +116,11 @@ pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
     explicit_bzero(dest as *mut libc::c_void, n);
 }
 
-/// Call SecureZeroMemory.
+/// Call `SecureZeroMemory`.
 #[cfg(all(windows, not(target_env = "msvc"), feature = "use_os"))]
 pub unsafe fn memzero<T>(s: *mut T, n: usize) {
     extern "system" {
-        fn RtlSecureZeroMemory(ptr: winapi::PVOID, cnt: winapi::SIZE_T);
+        fn RtlSecureZeroMemory(ptr: winapi::shared::ntdef::PVOID, cnt: winapi::shared::basetsd::SIZE_T);
     }
-    RtlSecureZeroMemory(s as winapi::PVOID, n as winapi::SIZE_T);
+    RtlSecureZeroMemory(s as winapi::shared::ntdef::PVOID, n as winapi::shared::basetsd::SIZE_T);
 }
