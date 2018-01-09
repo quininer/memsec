@@ -65,25 +65,3 @@ fn malloc_mprotect_1_test() {
         memsec::free(x);
     }
 }
-
-#[cfg(target_os = "linux")]
-#[should_panic]
-#[test]
-fn malloc_mprotect_2_test() {
-    use nix::sys::signal;
-    extern fn sigsegv(_: i32) { panic!() }
-    let sigaction = signal::SigAction::new(
-        signal::SigHandler::Handler(sigsegv),
-        signal::SA_SIGINFO,
-        signal::SigSet::empty(),
-    );
-    unsafe { signal::sigaction(signal::SIGSEGV, &sigaction).ok() };
-
-    unsafe {
-        let x: *mut u8 = memsec::allocarray(16).unwrap();
-
-        memsec::memset(x, 1, 16);
-        memsec::mprotect(x, memsec::Prot::ReadOnly);
-        memsec::memzero(x, 16); // SIGSEGV!
-    }
-}
