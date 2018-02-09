@@ -2,9 +2,11 @@
 
 #![cfg(feature = "alloc")]
 
+extern crate rand;
+
 use std::sync::{ Once, ONCE_INIT };
 use std::{ mem, ptr, process };
-use rand::{ Rng, OsRng };
+use self::rand::{ Rng, OsRng };
 
 
 const GARBAGE_VALUE: u8 = 0xd0;
@@ -136,29 +138,17 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
 
 /// Secure `malloc`.
 #[inline]
-pub unsafe fn malloc<T>(size: usize) -> Option<*mut T> {
+pub unsafe fn malloc(size: usize) -> Option<*mut u8> {
     _malloc(size)
         .map(|memptr| {
             ptr::write_bytes(memptr, GARBAGE_VALUE, size);
-            memptr as *mut T
+            memptr
         })
 }
 
-/// Alloc array.
-#[inline]
-pub unsafe fn allocarray<T>(count: usize) -> Option<*mut T> {
-    let size = mem::size_of::<T>();
-    if count > mem::size_of::<usize>() && size >= ::std::usize::MAX / count {
-        None
-    } else {
-        malloc(count * size)
-    }
-}
-
 /// Secure `free`.
-pub unsafe fn free<T>(memptr: *mut T) {
+pub unsafe fn free(memptr: *mut u8) {
     if memptr.is_null() { return () };
-    let memptr = memptr as *mut u8;
 
     // get unprotected ptr
     let canary_ptr = memptr.offset(-(CANARY_SIZE as isize));
@@ -222,14 +212,14 @@ pub mod Prot {
 /// Unix `mprotect`.
 #[cfg(unix)]
 #[inline]
-unsafe fn _mprotect<T>(ptr: *mut T, len: usize, prot: Prot::Ty) -> bool {
+unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
     ::libc::mprotect(ptr as *mut ::libc::c_void, len, prot as ::libc::c_int) == 0
 }
 
 /// Windows `VirtualProtect`.
 #[cfg(windows)]
 #[inline]
-unsafe fn _mprotect<T>(ptr: *mut T, len: usize, prot: Prot::Ty) -> bool {
+unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
     let mut old = ::std::mem::uninitialized();
     ::winapi::um::memoryapi::VirtualProtect(
         ptr as ::winapi::shared::minwindef::LPVOID,
@@ -240,8 +230,7 @@ unsafe fn _mprotect<T>(ptr: *mut T, len: usize, prot: Prot::Ty) -> bool {
 }
 
 /// Secure `mprotect`.
-pub unsafe fn mprotect<T>(memptr: *mut T, prot: Prot::Ty) -> bool {
-    let memptr = memptr as *mut u8;
+pub unsafe fn mprotect(memptr: *mut u8, prot: Prot::Ty) -> bool {
     let unprotected_ptr = unprotected_ptr_from_user_ptr(memptr);
     let base_ptr = unprotected_ptr.offset(-(PAGE_SIZE as isize * 2));
     let unprotected_size = ptr::read(base_ptr as *const usize);

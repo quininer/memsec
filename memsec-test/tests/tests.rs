@@ -11,11 +11,11 @@ use quickcheck::quickcheck;
 fn memzero_test() {
     unsafe {
         let mut x: [usize; 16] = [1; 16];
-        memsec::memzero(x.as_mut_ptr(), mem::size_of_val(&x));
+        memsec::memzero(x.as_mut_ptr() as *mut u8, mem::size_of_val(&x));
         assert_eq!(x, [0; 16]);
         x.clone_from_slice(&[1; 16]);
         assert_eq!(x, [1; 16]);
-        memsec::memzero(x[1..11].as_mut_ptr(), 10 * mem::size_of_val(&x[0]));
+        memsec::memzero(x[1..11].as_mut_ptr() as *mut u8, 10 * mem::size_of_val(&x[0]));
         assert_eq!(x, [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1]);
     }
 }

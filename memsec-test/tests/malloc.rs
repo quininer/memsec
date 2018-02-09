@@ -3,16 +3,16 @@
 #[cfg(target_os = "linux")] extern crate nix;
 extern crate memsec;
 
-use std::{ slice, mem };
+use std::mem;
 
 
 #[test]
 fn malloc_u64_test() {
     unsafe {
-        let p: *mut u64 = memsec::malloc(mem::size_of::<u64>()).unwrap();
+        let p: *mut u64 = memsec::malloc(mem::size_of::<u64>()).unwrap() as *mut u64;
         *p = std::u64::MAX;
         assert_eq!(*p, std::u64::MAX);
-        memsec::free(p);
+        memsec::free(p as *mut u8);
     }
 }
 
@@ -27,27 +27,8 @@ fn malloc_free_test() {
         assert!(!memptr.is_null());
         memsec::free(memptr);
 
-        let memptr = memsec::malloc::<u8>(std::usize::MAX - 1);
+        let memptr = memsec::malloc(std::usize::MAX - 1);
         assert!(memptr.is_none());
-
-        let buf: *mut u8 = memsec::allocarray(16).unwrap();
-        memsec::memzero(buf, 16);
-        assert!(memsec::memeq(buf, [0; 16].as_ptr(), 16));
-        memsec::free(buf);
-    }
-}
-
-#[test]
-fn allocarray_test() {
-    unsafe {
-        let memptr: *mut u8 = memsec::allocarray(8).unwrap();
-        let array = slice::from_raw_parts_mut(memptr, 8);
-        assert_eq!(array, [0xd0; 8]);
-        memsec::memzero(memptr, 8);
-        assert_eq!(array, [0; 8]);
-        array[0] = 1;
-        assert!(memsec::memeq(memptr, [1, 0, 0, 0, 0, 0, 0, 0].as_ptr(), 8));
-        memsec::free(memptr);
     }
 }
 

@@ -1,32 +1,25 @@
-#![cfg_attr(not(feature = "use_os"), no_std)]
+#![no_std]
+
 #![cfg_attr(feature = "nightly", feature(core_intrinsics))]
 
-#[cfg(feature = "alloc")] extern crate rand;
+#[cfg(feature = "use_os")] extern crate std;
 #[cfg(all(unix, feature = "use_os"))] extern crate libc;
-
 #[cfg(all(windows, feature = "use_os"))] extern crate winapi;
-
-#[cfg(all(apple, feature = "use_os"))]
-extern crate mach_o_sys;
+#[cfg(all(apple, feature = "use_os"))] extern crate mach_o_sys;
 
 mod mlock;
 mod alloc;
 
-#[cfg(feature = "use_os")] use std::ptr;
-#[cfg(not(feature = "use_os"))] use core::ptr;
-
+use core::ptr;
 #[cfg(feature = "use_os")] pub use mlock::{ mlock, munlock };
-#[cfg(feature = "alloc")] pub use alloc::{ Prot, mprotect, malloc, allocarray, free };
+#[cfg(feature = "alloc")] pub use alloc::{ Prot, mprotect, malloc, free };
 
 
 // -- memcmp --
 
 /// Constant time `memeq`.
 #[inline(never)]
-pub unsafe fn memeq<T>(b1: *const T, b2: *const T, len: usize) -> bool {
-    let b1 = b1 as *const u8;
-    let b2 = b2 as *const u8;
-
+pub unsafe fn memeq(b1: *const u8, b2: *const u8, len: usize) -> bool {
     (0..len as isize)
         .map(|i| ptr::read_volatile(b1.offset(i)) ^ ptr::read_volatile(b2.offset(i)))
         .fold(0, |sum, next| sum | next)
@@ -36,9 +29,7 @@ pub unsafe fn memeq<T>(b1: *const T, b2: *const T, len: usize) -> bool {
 
 /// Constant time `memcmp`.
 #[inline(never)]
-pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
-    let b1 = b1 as *const u8;
-    let b2 = b2 as *const u8;
+pub unsafe fn memcmp(b1: *const u8, b2: *const u8, len: usize) -> i32 {
     let mut res = 0;
     for i in (0..len as isize).rev() {
         let diff = i32::from(ptr::read_volatile(b1.offset(i)))
@@ -55,24 +46,15 @@ pub unsafe fn memcmp<T>(b1: *const T, b2: *const T, len: usize) -> i32 {
 #[cfg(feature = "nightly")]
 #[cfg(any(not(apple), not(feature = "use_os")))]
 #[inline(never)]
-pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
-    #[cfg(feature = "use_os")]
-    use std::intrinsics;
-
-    #[cfg(not(feature = "use_os"))]
-    use core::intrinsics;
-
-    intrinsics::volatile_set_memory(s as *mut u8, c as u8, n);
+pub unsafe fn memset(s: *mut u8, c: u8, n: usize) {
+    core::intrinsics::volatile_set_memory(s, c, n);
 }
 
 /// General `memset`.
 #[cfg(not(feature = "nightly"))]
 #[cfg(any(not(apple), not(feature = "use_os")))]
 #[inline(never)]
-pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
-    let s = s as *mut u8;
-    let c = c as u8;
-
+pub unsafe fn memset(s: *mut u8, c: u8, n: usize) {
     for i in 0..n {
         ptr::write_volatile(s.offset(i as isize), c);
     }
@@ -80,7 +62,7 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
 
 /// Call `memset_s`.
 #[cfg(all(apple, feature = "use_os"))]
-pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
+pub unsafe fn memset(s: *mut u8, c: u8, n: usize) {
     use libc::{ c_void, c_int };
     use mach_o_sys::ranlib::{ rsize_t, errno_t };
 
@@ -103,13 +85,13 @@ pub unsafe fn memset<T>(s: *mut T, c: i32, n: usize) {
     not(feature = "use_os")
 ))]
 #[inline]
-pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
+pub unsafe fn memzero(dest: *mut u8, n: usize) {
     memset(dest, 0, n);
 }
 
 /// Call `explicit_bzero`.
 #[cfg(all(any(freebsdlike, netbsdlike), feature = "use_os"))]
-pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
+pub unsafe fn memzero(dest: *mut u8, n: usize) {
     extern {
         fn explicit_bzero(s: *mut libc::c_void, n: libc::size_t);
     }
@@ -118,7 +100,7 @@ pub unsafe fn memzero<T>(dest: *mut T, n: usize) {
 
 /// Call `SecureZeroMemory`.
 #[cfg(all(windows, not(target_env = "msvc"), feature = "use_os"))]
-pub unsafe fn memzero<T>(s: *mut T, n: usize) {
+pub unsafe fn memzero(s: *mut u8, n: usize) {
     extern "system" {
         fn RtlSecureZeroMemory(ptr: winapi::shared::ntdef::PVOID, cnt: winapi::shared::basetsd::SIZE_T);
     }
