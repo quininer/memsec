@@ -4,14 +4,15 @@
 
 extern crate rand;
 
-use std::sync::{ Once, ONCE_INIT };
+use std::sync::Once;
 use std::{ mem, ptr, process };
+use std::ptr::NonNull;
 use self::rand::{ Rng, OsRng };
 
 
 const GARBAGE_VALUE: u8 = 0xd0;
 const CANARY_SIZE: usize = 16;
-static ALLOC_INIT: Once = ONCE_INIT;
+static ALLOC_INIT: Once = Once::new();
 static mut PAGE_SIZE: usize = 0;
 static mut PAGE_MASK: usize = 0;
 static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
@@ -45,10 +46,10 @@ unsafe fn alloc_init() {
 
 #[cfg(unix)]
 #[inline]
-unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
+unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
     let mut memptr = mem::uninitialized();
     match ::libc::posix_memalign(&mut memptr, PAGE_SIZE, size) {
-        0 => Some(memptr as *mut u8),
+        0 => Some(NonNull::new_unchecked(memptr as *mut u8)),
         ::libc::EINVAL => process::abort(),
         ::libc::ENOMEM => None,
         _ => unreachable!()
@@ -57,18 +58,15 @@ unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
 
 #[cfg(windows)]
 #[inline]
-unsafe fn alloc_aligned(size: usize) -> Option<*mut u8> {
+unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
     let memptr = ::winapi::um::memoryapi::VirtualAlloc(
         ptr::null_mut(),
         size as ::winapi::shared::basetsd::SIZE_T,
         ::winapi::um::winnt::MEM_COMMIT | ::winapi::um::winnt::MEM_RESERVE,
         ::winapi::um::winnt::PAGE_READWRITE
     );
-    if memptr.is_null() {
-        None
-    } else {
-        Some(memptr as *mut u8)
-    }
+
+    NonNull::new(memptr as *mut u8)
 }
 
 #[cfg(unix)]
@@ -104,8 +102,10 @@ unsafe fn unprotected_ptr_from_user_ptr(memptr: *const u8) -> *mut u8 {
     unprotected_ptr_u as *mut u8
 }
 
-unsafe fn _malloc(size: usize) -> Option<*mut u8> {
+unsafe fn _malloc<T>() -> Option<NonNull<T>> {
     ALLOC_INIT.call_once(|| alloc_init());
+
+    let size = mem::size_of::<T>();
 
     if size >= ::std::usize::MAX - PAGE_SIZE * 4 {
         return None;
@@ -115,10 +115,7 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
     let size_with_canary = CANARY_SIZE + size;
     let unprotected_size = page_round(size_with_canary);
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
-    let base_ptr = match alloc_aligned(total_size) {
-        Some(memptr) => memptr,
-        None => return None
-    };
+    let base_ptr = alloc_aligned(total_size)?.as_ptr();
     let unprotected_ptr = base_ptr.offset(PAGE_SIZE as isize * 2);
 
     // mprotect ptr
@@ -133,22 +130,22 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
 
     assert_eq!(unprotected_ptr_from_user_ptr(user_ptr), unprotected_ptr);
 
-    Some(user_ptr)
+    Some(NonNull::new_unchecked(user_ptr as *mut T))
 }
 
 /// Secure `malloc`.
 #[inline]
-pub unsafe fn malloc(size: usize) -> Option<*mut u8> {
-    _malloc(size)
+pub unsafe fn malloc<T>() -> Option<NonNull<T>> {
+    _malloc()
         .map(|memptr| {
-            ptr::write_bytes(memptr, GARBAGE_VALUE, size);
+            ptr::write_bytes(memptr.as_ptr() as *mut u8, GARBAGE_VALUE, mem::size_of::<T>());
             memptr
         })
 }
 
 /// Secure `free`.
-pub unsafe fn free(memptr: *mut u8) {
-    if memptr.is_null() { return () };
+pub unsafe fn free<T>(memptr: NonNull<T>) {
+    let memptr = memptr.as_ptr() as *mut u8;
 
     // get unprotected ptr
     let canary_ptr = memptr.offset(-(CANARY_SIZE as isize));
@@ -230,7 +227,9 @@ unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
 }
 
 /// Secure `mprotect`.
-pub unsafe fn mprotect(memptr: *mut u8, prot: Prot::Ty) -> bool {
+pub unsafe fn mprotect<T>(memptr: NonNull<T>, prot: Prot::Ty) -> bool {
+    let memptr = memptr.as_ptr() as *mut u8;
+
     let unprotected_ptr = unprotected_ptr_from_user_ptr(memptr);
     let base_ptr = unprotected_ptr.offset(-(PAGE_SIZE as isize * 2));
     let unprotected_size = ptr::read(base_ptr as *const usize);

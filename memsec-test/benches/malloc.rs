@@ -6,13 +6,14 @@ extern crate libc;
 extern crate memsec;
 #[cfg(unix)] extern crate libsodium_sys;
 
+use std::ptr::NonNull;
 use test::Bencher;
 
 
 #[bench]
 fn memsec_malloc(b: &mut Bencher) {
     b.iter(|| unsafe {
-        let ptr: *mut u8 = memsec::malloc(512).unwrap();
+        let ptr: NonNull<[u8; 512]> = memsec::malloc().unwrap();
         memsec::free(ptr);
     });
 }
