@@ -27,7 +27,7 @@ winapi = { version = "0.3", features = [ "memoryapi", "sysinfoapi" ], optional =
 mach_o_sys = { version = "0.1", optional = true }
 
 [features]
-default = [ "alloc" ]
+default = [ "use_os", "alloc" ]
 nightly = []
 use_os = [ "libc", "winapi", "mach_o_sys" ]
-alloc = [ "use_os", "rand" ]
+alloc = [ "rand" ]
