@@ -4,10 +4,11 @@
 
 extern crate rand;
 
-use std::sync::Once;
 use std::{ mem, ptr, process };
+use std::sync::Once;
 use std::ptr::NonNull;
 use self::rand::{ Rng, OsRng };
+use self::raw_alloc::*;
 
 
 const GARBAGE_VALUE: u8 = 0xd0;
@@ -44,45 +45,69 @@ unsafe fn alloc_init() {
 
 // -- aligned alloc / aligned free --
 
-#[cfg(unix)]
-#[inline]
-unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
-    let mut memptr = mem::uninitialized();
-    match ::libc::posix_memalign(&mut memptr, PAGE_SIZE, size) {
-        0 => Some(NonNull::new_unchecked(memptr as *mut u8)),
-        ::libc::EINVAL => process::abort(),
-        ::libc::ENOMEM => None,
-        _ => unreachable!()
+#[cfg(not(feature = "nightly"))]
+mod raw_alloc {
+    use std::mem;
+    use super::*;
+
+    #[cfg(unix)]
+    #[inline]
+    pub unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
+        let mut memptr = mem::uninitialized();
+        match ::libc::posix_memalign(&mut memptr, PAGE_SIZE, size) {
+            0 => Some(NonNull::new_unchecked(memptr as *mut u8)),
+            ::libc::EINVAL => process::abort(),
+            ::libc::ENOMEM => None,
+            _ => unreachable!()
+        }
+    }
+
+    #[cfg(windows)]
+    #[inline]
+    pub unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
+        let memptr = ::winapi::um::memoryapi::VirtualAlloc(
+            ptr::null_mut(),
+            size as ::winapi::shared::basetsd::SIZE_T,
+            ::winapi::um::winnt::MEM_COMMIT | ::winapi::um::winnt::MEM_RESERVE,
+            ::winapi::um::winnt::PAGE_READWRITE
+        );
+
+        NonNull::new(memptr as *mut u8)
+    }
+
+    #[cfg(unix)]
+    #[inline]
+    pub unsafe fn free_aligned(memptr: *mut u8, _size: usize) {
+        ::libc::free(memptr as *mut ::libc::c_void);
+    }
+
+    #[cfg(windows)]
+    #[inline]
+    pub unsafe fn free_aligned(memptr: *mut u8, _size: usize) {
+        ::winapi::um::memoryapi::VirtualFree(
+            memptr as ::winapi::shared::minwindef::LPVOID,
+            0,
+            ::winapi::um::winnt::MEM_RELEASE
+        );
     }
 }
 
-#[cfg(windows)]
-#[inline]
-unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
-    let memptr = ::winapi::um::memoryapi::VirtualAlloc(
-        ptr::null_mut(),
-        size as ::winapi::shared::basetsd::SIZE_T,
-        ::winapi::um::winnt::MEM_COMMIT | ::winapi::um::winnt::MEM_RESERVE,
-        ::winapi::um::winnt::PAGE_READWRITE
-    );
+#[cfg(feature = "nightly")]
+mod raw_alloc {
+    use std::heap::{ Alloc, Layout, Heap };
+    use super::*;
 
-    NonNull::new(memptr as *mut u8)
-}
+    #[inline]
+    pub unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
+        Heap.alloc(Layout::from_size_align_unchecked(size, PAGE_SIZE))
+            .map(|ptr| NonNull::new_unchecked(ptr))
+            .ok()
+    }
 
-#[cfg(unix)]
-#[inline]
-unsafe fn free_aligned(memptr: *mut u8, _size: usize) {
-    ::libc::free(memptr as *mut ::libc::c_void);
-}
-
-#[cfg(windows)]
-#[inline]
-unsafe fn free_aligned(memptr: *mut u8, _size: usize) {
-    ::winapi::um::memoryapi::VirtualFree(
-        memptr as ::winapi::shared::minwindef::LPVOID,
-        0,
-        ::winapi::um::winnt::MEM_RELEASE
-    );
+    #[inline]
+    pub unsafe fn free_aligned(memptr: *mut u8, size: usize) {
+        Heap.dealloc(memptr, Layout::from_size_align_unchecked(size, PAGE_SIZE));
+    }
 }
 
 // -- malloc / free --
@@ -152,13 +177,13 @@ pub unsafe fn free<T>(memptr: NonNull<T>) {
     let unprotected_ptr = unprotected_ptr_from_user_ptr(memptr);
     let base_ptr = unprotected_ptr.offset(-(PAGE_SIZE as isize * 2));
     let unprotected_size = ptr::read(base_ptr as *const usize);
-    let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
-    _mprotect(base_ptr, total_size, Prot::ReadWrite);
 
     // check
     assert!(::memeq(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE));
 
     // free
+    let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
+    _mprotect(base_ptr, total_size, Prot::ReadWrite);
     ::munlock(unprotected_ptr, unprotected_size);
     free_aligned(base_ptr, total_size);
 }
