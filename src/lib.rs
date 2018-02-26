@@ -70,7 +70,7 @@ pub unsafe fn memset(s: *mut u8, c: u8, n: usize) {
         fn memset_s(s: *mut c_void, smax: rsize_t, c: c_int, n: rsize_t) -> errno_t;
     }
 
-    if n > 0 && memset_s(s as *mut c_void, n as rsize_t, c, n as rsize_t) != 0 {
+    if n > 0 && memset_s(s as *mut c_void, n as _, c as _, n as _) != 0 {
         std::process::abort()
     }
 }
