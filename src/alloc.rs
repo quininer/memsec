@@ -9,8 +9,7 @@ use core::ptr::{ self, NonNull };
 use self::rand::{ Rng, OsRng };
 use self::raw_alloc::*;
 
-#[cfg(not(target_arch = "wasm32"))] use std::sync::Once;
-#[cfg(target_arch = "wasm32")] use self::once::Once;
+use std::sync::Once;
 #[cfg(not(feature = "nightly"))] use std::process::abort;
 #[cfg(feature = "nightly")] use core::intrinsics::abort;
 
@@ -25,27 +24,6 @@ static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 
 // -- alloc init --
 
-#[cfg(target_arch = "wasm32")]
-mod once {
-    use core::sync::atomic::{ AtomicBool, Ordering };
-
-    pub struct Once(AtomicBool);
-
-    impl Once {
-        pub const fn new() -> Self {
-            Once(AtomicBool::new(false))
-        }
-
-        pub fn call_once<F>(&self, f: F)
-            where F: FnOnce()
-        {
-            if !self.0.fetch_or(true, Ordering::SeqCst) {
-                f();
-            }
-        }
-    }
-}
-
 #[inline]
 unsafe fn alloc_init() {
     #[cfg(unix)] {
@@ -58,22 +36,12 @@ unsafe fn alloc_init() {
         PAGE_SIZE = si.dwPageSize as usize;
     }
 
-    #[cfg(target_arch = "wasm32")]
-    #[cfg_attr(feature = "cargo-clippy", allow(decimal_literal_representation))]
-    {
-        PAGE_SIZE = 4096;
-    }
-
-    #[cfg(not(any(unix, windows, target_arch = "wasm32")))]
-    compile_error!("not support system/arch");
-
     if PAGE_SIZE < CANARY_SIZE || PAGE_SIZE < mem::size_of::<usize>() {
         abort();
     }
 
     PAGE_MASK = PAGE_SIZE - 1;
 
-    // TODO wasm support
     OsRng::new().unwrap().fill_bytes(&mut CANARY);
 }
 
@@ -189,17 +157,6 @@ pub mod Prot {
     // pub const TargetsNoUpdate: Ty = ::winapi::um::winnt::PAGE_TARGETS_NO_UPDATE;
 }
 
-/// Dummy Prot enum.
-#[cfg(not(any(unix, windows)))]
-#[allow(non_snake_case, non_upper_case_globals)]
-pub mod Prot {
-    #[derive(Copy, Clone)] pub struct Ty();
-
-    pub const NoAccess: Ty = Ty();
-    pub const ReadOnly: Ty = Ty();
-    pub const ReadWrite: Ty = Ty();
-}
-
 
 /// Unix `mprotect`.
 #[cfg(unix)]
@@ -221,9 +178,6 @@ pub unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
     ) != 0
 }
 
-#[cfg(not(any(unix, windows)))]
-unsafe fn _mprotect(_: *mut u8, _: usize, _: Prot::Ty) -> bool { false }
-
 
 /// Secure `mprotect`.
 #[cfg(any(unix, windows))]
@@ -235,10 +189,6 @@ pub unsafe fn mprotect<T>(memptr: NonNull<T>, prot: Prot::Ty) -> bool {
     let unprotected_size = ptr::read(base_ptr as *const usize);
     _mprotect(unprotected_ptr, unprotected_size, prot)
 }
-
-/// Dummy `mprotect`.
-#[cfg(not(any(unix, windows)))]
-pub unsafe fn mprotect<T>(_: NonNull<T>, _: Prot::Ty) -> bool { false }
 
 
 // -- malloc / free --
@@ -276,13 +226,7 @@ unsafe fn _malloc<T>() -> Option<NonNull<T>> {
 
     // mprotect ptr
     _mprotect(base_ptr.offset(PAGE_SIZE as isize), PAGE_SIZE, Prot::NoAccess);
-
-    #[cfg(not(any(unix, windows)))]
-    ptr::copy_nonoverlapping(CANARY.as_ptr(), unprotected_ptr.offset(unprotected_size as isize), CANARY_SIZE);
-
     _mprotect(unprotected_ptr.offset(unprotected_size as isize), PAGE_SIZE, Prot::NoAccess);
-
-    #[cfg(any(unix, windows))]
     ::mlock(unprotected_ptr, unprotected_size);
 
     let canary_ptr = unprotected_ptr.offset(unprotected_size as isize - size_with_canary as isize);
@@ -319,15 +263,11 @@ pub unsafe fn free<T>(memptr: NonNull<T>) {
     // check
     assert!(::memeq(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE));
 
-    #[cfg(not(any(unix, windows)))]
-    assert!(::memeq(unprotected_ptr.offset(unprotected_size as isize), CANARY.as_ptr(), CANARY_SIZE));
-
     // free
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
     _mprotect(base_ptr, total_size, Prot::ReadWrite);
 
-    #[cfg(any(unix, windows))] ::munlock(unprotected_ptr, unprotected_size);
-    #[cfg(not(any(unix, windows)))] ::memzero(unprotected_ptr, unprotected_size);
+    ::munlock(unprotected_ptr, unprotected_size);
 
     free_aligned(base_ptr, total_size);
 }
