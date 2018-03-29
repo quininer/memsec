@@ -6,7 +6,7 @@ extern crate rand;
 
 use core::mem;
 use core::ptr::{ self, NonNull };
-use self::rand::{ Rng, OsRng };
+use self::rand::{ RngCore, OsRng };
 use self::raw_alloc::*;
 
 use std::sync::Once;
@@ -152,9 +152,7 @@ pub mod Prot {
     pub const WriteCombine: Ty = ::winapi::um::winnt::PAGE_WRITECOMBINE;
     pub const RevertToFileMap: Ty = ::winapi::um::winnt::PAGE_REVERT_TO_FILE_MAP;
     pub const TargetsInvalid: Ty = ::winapi::um::winnt::PAGE_TARGETS_INVALID;
-
-    // ::winapi::um::winnt::PAGE_TARGETS_INVALID == ::winapi::um::winnt::PAGE_TARGETS_NO_UPDATE
-    // pub const TargetsNoUpdate: Ty = ::winapi::um::winnt::PAGE_TARGETS_NO_UPDATE;
+    pub const TargetsNoUpdate: Ty = ::winapi::um::winnt::PAGE_TARGETS_NO_UPDATE;
 }
 
 
