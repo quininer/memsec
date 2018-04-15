@@ -96,21 +96,19 @@ mod raw_alloc {
 
 #[cfg(feature = "nightly")]
 mod raw_alloc {
-    extern crate alloc;
-
-    use self::alloc::heap::{ Alloc, Layout, Heap };
+    use std::alloc::{ GlobalAlloc, Global, Layout };
     use super::*;
 
     #[inline]
     pub unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
-        Heap.alloc(Layout::from_size_align_unchecked(size, PAGE_SIZE))
-            .map(|ptr| NonNull::new_unchecked(ptr))
-            .ok()
+        let layout = Layout::from_size_align_unchecked(size, PAGE_SIZE);
+        NonNull::new(Global.alloc(layout) as *mut _)
     }
 
     #[inline]
     pub unsafe fn free_aligned(memptr: *mut u8, size: usize) {
-        Heap.dealloc(memptr, Layout::from_size_align_unchecked(size, PAGE_SIZE));
+        let layout = Layout::from_size_align_unchecked(size, PAGE_SIZE);
+        Global.dealloc(memptr as *mut _, layout);
     }
 }
 
