@@ -17,7 +17,7 @@ use core::ptr;
 
 // -- memcmp --
 
-/// Constant time `memeq`.
+/// Secure `memeq`.
 #[inline(never)]
 pub unsafe fn memeq(b1: *const u8, b2: *const u8, len: usize) -> bool {
     (0..len as isize)
@@ -27,7 +27,7 @@ pub unsafe fn memeq(b1: *const u8, b2: *const u8, len: usize) -> bool {
 }
 
 
-/// Constant time `memcmp`.
+/// Secure `memcmp`.
 #[inline(never)]
 pub unsafe fn memcmp(b1: *const u8, b2: *const u8, len: usize) -> i32 {
     let mut res = 0;
