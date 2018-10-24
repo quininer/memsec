@@ -56,7 +56,7 @@ pub unsafe fn memset(s: *mut u8, c: u8, n: usize) {
 #[inline(never)]
 pub unsafe fn memset(s: *mut u8, c: u8, n: usize) {
     for i in 0..n {
-        ptr::write_volatile(s.offset(i as isize), c);
+        ptr::write_volatile(s.add(i), c);
     }
 }
 
