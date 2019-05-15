@@ -1,6 +1,6 @@
 [package]
 name = "memsec"
-version = "0.5.4"
+version = "0.5.5"
 authors = ["quininer kel <quininer@live.com>"]
 description = "Rust implementation `libsodium/utils`."
 repository = "https://github.com/quininer/memsec"
@@ -15,7 +15,7 @@ travis-ci = { repository = "quininer/memsec" }
 appveyor = { repository = "quininer/memsec" }
 
 [dependencies]
-rand = { version = "0.5", optional = true }
+getrandom = { version = "0.1", optional = true }
 
 [target.'cfg(unix)'.dependencies]
 libc = { version = "0.2", optional = true }
@@ -30,4 +30,4 @@ mach_o_sys = { version = "0.1", optional = true }
 default = [ "use_os", "alloc" ]
 nightly = []
 use_os = [ "libc", "winapi", "mach_o_sys" ]
-alloc = [ "rand" ]
+alloc = [ "getrandom" ]

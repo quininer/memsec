@@ -2,16 +2,15 @@
 
 #![cfg(feature = "alloc")]
 
-extern crate rand;
+extern crate getrandom;
 
 use core::mem;
 use core::ptr::{ self, NonNull };
-use self::rand::{ RngCore, OsRng };
+use self::getrandom::getrandom;
 use self::raw_alloc::*;
 
 use std::sync::Once;
-#[cfg(not(feature = "nightly"))] use std::process::abort;
-#[cfg(feature = "nightly")] use core::intrinsics::abort;
+use std::process::abort;
 
 
 const GARBAGE_VALUE: u8 = 0xd0;
@@ -42,75 +41,28 @@ unsafe fn alloc_init() {
 
     PAGE_MASK = PAGE_SIZE - 1;
 
-    OsRng::new().unwrap().fill_bytes(&mut CANARY);
+    if getrandom(&mut CANARY).is_err() {
+        abort()
+    }
 }
 
 
 // -- aligned alloc / aligned free --
 
-#[cfg(not(feature = "nightly"))]
 mod raw_alloc {
-    use super::*;
-
-    #[cfg(unix)]
-    #[inline]
-    pub unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
-        let mut memptr = mem::uninitialized();
-        match ::libc::posix_memalign(&mut memptr, PAGE_SIZE, size) {
-            0 => Some(NonNull::new_unchecked(memptr as *mut u8)),
-            ::libc::EINVAL => abort(),
-            ::libc::ENOMEM => None,
-            _ => unreachable!()
-        }
-    }
-
-    #[cfg(windows)]
-    #[inline]
-    pub unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
-        let memptr = ::winapi::um::memoryapi::VirtualAlloc(
-            ptr::null_mut(),
-            size as ::winapi::shared::basetsd::SIZE_T,
-            ::winapi::um::winnt::MEM_COMMIT | ::winapi::um::winnt::MEM_RESERVE,
-            ::winapi::um::winnt::PAGE_READWRITE
-        );
-
-        NonNull::new(memptr as *mut u8)
-    }
-
-    #[cfg(unix)]
-    #[inline]
-    pub unsafe fn free_aligned(memptr: *mut u8, _size: usize) {
-        ::libc::free(memptr as *mut ::libc::c_void);
-    }
-
-    #[cfg(windows)]
-    #[inline]
-    pub unsafe fn free_aligned(memptr: *mut u8, _size: usize) {
-        ::winapi::um::memoryapi::VirtualFree(
-            memptr as ::winapi::shared::minwindef::LPVOID,
-            0,
-            ::winapi::um::winnt::MEM_RELEASE
-        );
-    }
-}
-
-#[cfg(feature = "nightly")]
-mod raw_alloc {
-    use std::alloc::{ Global, Layout, Alloc };
+    use std::alloc::{ alloc, dealloc, Layout };
     use super::*;
 
     #[inline]
     pub unsafe fn alloc_aligned(size: usize) -> Option<NonNull<u8>> {
         let layout = Layout::from_size_align_unchecked(size, PAGE_SIZE);
-        Global.alloc(layout).ok()
+        NonNull::new(alloc(layout))
     }
 
     #[inline]
     pub unsafe fn free_aligned(memptr: *mut u8, size: usize) {
-        if let Some(memptr) = NonNull::new(memptr) {
-            let layout = Layout::from_size_align_unchecked(size, PAGE_SIZE);
-            Global.dealloc(memptr, layout);
-        }
+        let layout = Layout::from_size_align_unchecked(size, PAGE_SIZE);
+        dealloc(memptr, layout);
     }
 }
 

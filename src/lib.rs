@@ -1,6 +1,6 @@
 #![no_std]
 
-#![cfg_attr(feature = "nightly", feature(core_intrinsics, allocator_api))]
+#![cfg_attr(feature = "nightly", feature(core_intrinsics))]
 
 #[cfg(feature = "use_os")] extern crate std;
 #[cfg(all(unix, feature = "use_os"))] extern crate libc;
