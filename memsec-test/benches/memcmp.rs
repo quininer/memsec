@@ -7,7 +7,7 @@ extern crate memsec;
 
 use test::Bencher;
 use std::mem::size_of_val;
-use libc::{ c_void, c_int, size_t };
+use libc::c_void;
 
 
 #[bench]
@@ -57,7 +57,7 @@ fn libsodium_memcmp_eq_bench(b: &mut Bencher) {
     let y: [u8; 1025] = [9; 1025];
 
     b.iter(|| unsafe {
-        libsodium_sys::sodium_memcmp(x.as_ptr(), y.as_ptr(), size_of_val(&y))
+        libsodium_sys::sodium_memcmp(x.as_ptr() as *const _, y.as_ptr() as *const _, size_of_val(&y))
     });
 }
 
@@ -68,7 +68,7 @@ fn libsodium_memcmp_nq_bench(b: &mut Bencher) {
     let z: [u8; 1025] = [3; 1025];
 
     b.iter(|| unsafe {
-        libsodium_sys::sodium_memcmp(x.as_ptr(), z.as_ptr(), size_of_val(&z))
+        libsodium_sys::sodium_memcmp(x.as_ptr() as *const _, z.as_ptr() as *const _, size_of_val(&z))
     });
 }
 
@@ -79,7 +79,7 @@ fn libsodium_compare_nq_bench(b: &mut Bencher) {
     let z: [u8; 1025] = [3; 1025];
 
     b.iter(|| unsafe {
-        sodium_compare(x.as_ptr(), z.as_ptr(), size_of_val(&z))
+        libsodium_sys::sodium_compare(x.as_ptr() as *const _, z.as_ptr() as *const _, size_of_val(&z))
     });
 }
 
@@ -90,7 +90,7 @@ fn libsodium_compare_eq_bench(b: &mut Bencher) {
     let y: [u8; 1025] = [9; 1025];
 
     b.iter(|| unsafe {
-        sodium_compare(x.as_ptr(), y.as_ptr(), size_of_val(&y))
+        libsodium_sys::sodium_compare(x.as_ptr() as *const _, y.as_ptr() as *const _, size_of_val(&y))
     });
 }
 
@@ -112,11 +112,4 @@ fn libc_memcmp_nq_bench(b: &mut Bencher) {
     b.iter(|| unsafe {
         libc::memcmp(x.as_ptr() as *const c_void, z.as_ptr() as *const c_void, size_of_val(&z))
     });
-}
-
-
-#[cfg(unix)]
-#[link = "libsodium"]
-extern "C" {
-    fn sodium_compare(b1_: *const u8, b2_: *const u8, len: size_t) -> c_int;
 }
