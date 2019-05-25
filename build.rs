@@ -1,10 +1,10 @@
+use std::env;
+
 fn main() {
-    #[cfg(any(target_os = "macos", target_os = "ios"))]
-    println!("cargo:rustc-cfg=apple");
-
-    #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
-    println!("cargo:rustc-cfg=freebsdlike");
-
-    #[cfg(any(target_os = "openbsd", target_os = "netbsd", target_os = "bitrig"))]
-    println!("cargo:rust-cfg=netbsdlike");
+    match env::var("CARGO_CFG_TARGET_OS").as_ref().map(String::as_str) {
+        Ok("macos") | Ok("ios") => println!("cargo:rustc-cfg=apple"),
+        Ok("freebsd") | Ok("dragonfly") => println!("cargo:rustc-cfg=freebsdlike"),
+        Ok("openbsd") | Ok("netbsd") | Ok("bitrig") => println!("cargo:rust-cfg=netbsdlike"),
+        _ => ()
+    }
 }
