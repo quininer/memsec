@@ -31,6 +31,12 @@ fn malloc_free_test() {
             memsec::free(memptr);
         }
 
+        let memptr: Option<NonNull<[u8]>> = memsec::malloc_sized(1024);
+        assert!(memptr.is_some());
+        if let Some(memptr) = memptr {
+            memsec::free(memptr);
+        }
+
         // let memptr: Option<NonNull<[u8; std::usize::MAX - 1]>> = memsec::malloc();
         // assert!(memptr.is_none());
     }
@@ -58,6 +64,24 @@ fn malloc_mprotect_1_test() {
 
     unsafe {
         let mut x: NonNull<[u8; 4100]> = memsec::malloc().unwrap();
+        memsec::memset(x.as_mut().as_mut_ptr().offset(100), 0x03, 3000);
+        memsec::free(x);
+    }
+
+    unsafe {
+        let mut x = memsec::malloc_sized(16).unwrap();
+
+        memsec::memset(x.as_mut().as_mut_ptr(), 0x01, 16);
+        assert!(memsec::mprotect(x, memsec::Prot::ReadOnly));
+        assert!(memsec::memeq(x.as_ref().as_ptr(), [1; 16].as_ptr(), 16));
+        assert!(memsec::mprotect(x, memsec::Prot::NoAccess));
+        assert!(memsec::mprotect(x, memsec::Prot::ReadWrite));
+        memsec::memzero(x.as_mut().as_mut_ptr(), 16);
+        memsec::free(x);
+    }
+
+    unsafe {
+        let mut x = memsec::malloc_sized(4100).unwrap();
         memsec::memset(x.as_mut().as_mut_ptr().offset(100), 0x03, 3000);
         memsec::free(x);
     }

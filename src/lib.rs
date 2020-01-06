@@ -12,7 +12,7 @@ mod alloc;
 
 use core::ptr;
 #[cfg(feature = "use_os")] pub use mlock::{ mlock, munlock };
-#[cfg(feature = "alloc")] pub use alloc::{ Prot, mprotect, malloc, free };
+#[cfg(feature = "alloc")] pub use alloc::{ Prot, mprotect, malloc, malloc_sized, free };
 
 
 // -- memcmp --

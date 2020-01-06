@@ -6,6 +6,7 @@ extern crate getrandom;
 
 use core::mem;
 use core::ptr::{ self, NonNull };
+use core::slice;
 use self::getrandom::getrandom;
 use self::raw_alloc::*;
 
@@ -131,7 +132,7 @@ pub unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
 
 /// Secure `mprotect`.
 #[cfg(any(unix, windows))]
-pub unsafe fn mprotect<T>(memptr: NonNull<T>, prot: Prot::Ty) -> bool {
+pub unsafe fn mprotect<T: ?Sized>(memptr: NonNull<T>, prot: Prot::Ty) -> bool {
     let memptr = memptr.as_ptr() as *mut u8;
 
     let unprotected_ptr = unprotected_ptr_from_user_ptr(memptr);
@@ -158,10 +159,8 @@ unsafe fn unprotected_ptr_from_user_ptr(memptr: *const u8) -> *mut u8 {
     unprotected_ptr_u as *mut u8
 }
 
-unsafe fn _malloc<T>() -> Option<NonNull<T>> {
+unsafe fn _malloc(size: usize) -> Option<*mut u8> {
     ALLOC_INIT.call_once(|| alloc_init());
-
-    let size = mem::size_of::<T>();
 
     if size >= ::core::usize::MAX - PAGE_SIZE * 4 {
         return None;
@@ -187,21 +186,31 @@ unsafe fn _malloc<T>() -> Option<NonNull<T>> {
 
     assert_eq!(unprotected_ptr_from_user_ptr(user_ptr), unprotected_ptr);
 
-    Some(NonNull::new_unchecked(user_ptr as *mut T))
+    Some(user_ptr)
 }
 
 /// Secure `malloc`.
 #[inline]
 pub unsafe fn malloc<T>() -> Option<NonNull<T>> {
-    _malloc()
+    _malloc(mem::size_of::<T>())
         .map(|memptr| {
-            ptr::write_bytes(memptr.as_ptr() as *mut u8, GARBAGE_VALUE, mem::size_of::<T>());
-            memptr
+            ptr::write_bytes(memptr, GARBAGE_VALUE, mem::size_of::<T>());
+            NonNull::new_unchecked(memptr as *mut T)
+        })
+}
+
+/// Secure `malloc_sized`.
+#[inline]
+pub unsafe fn malloc_sized(size: usize) -> Option<NonNull<[u8]>> {
+    _malloc(size)
+        .map(|memptr| {
+            ptr::write_bytes(memptr, GARBAGE_VALUE, size);
+            NonNull::new_unchecked(slice::from_raw_parts_mut(memptr, size))
         })
 }
 
 /// Secure `free`.
-pub unsafe fn free<T>(memptr: NonNull<T>) {
+pub unsafe fn free<T: ?Sized>(memptr: NonNull<T>) {
     let memptr = memptr.as_ptr() as *mut u8;
 
     // get unprotected ptr
