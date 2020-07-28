@@ -2,16 +2,15 @@
 
 #![cfg(feature = "alloc")]
 
-extern crate getrandom;
+extern crate std;
 
 use core::mem;
 use core::ptr::{ self, NonNull };
 use core::slice;
-use self::getrandom::getrandom;
+use getrandom::getrandom;
+use self::std::sync::Once;
+use self::std::process::abort;
 use self::raw_alloc::*;
-
-use std::sync::Once;
-use std::process::abort;
 
 
 const GARBAGE_VALUE: u8 = 0xd0;
@@ -27,31 +26,29 @@ static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 #[inline]
 unsafe fn alloc_init() {
     #[cfg(unix)] {
-        PAGE_SIZE = ::libc::sysconf(::libc::_SC_PAGESIZE) as usize;
+        PAGE_SIZE = libc::sysconf(libc::_SC_PAGESIZE) as usize;
     }
 
     #[cfg(windows)] {
-        let mut si = mem::uninitialized();
-        ::winapi::um::sysinfoapi::GetSystemInfo(&mut si);
-        PAGE_SIZE = si.dwPageSize as usize;
+        let mut si = mem::MaybeUninit::uninit();
+        winapi::um::sysinfoapi::GetSystemInfo(si.as_mut_ptr());
+        PAGE_SIZE = (*si.as_ptr()).dwPageSize as usize;
     }
 
     if PAGE_SIZE < CANARY_SIZE || PAGE_SIZE < mem::size_of::<usize>() {
-        abort();
+        panic!("page size too small");
     }
 
     PAGE_MASK = PAGE_SIZE - 1;
 
-    if getrandom(&mut CANARY).is_err() {
-        abort()
-    }
+    getrandom(&mut CANARY).unwrap();
 }
 
 
 // -- aligned alloc / aligned free --
 
 mod raw_alloc {
-    use std::alloc::{ alloc, dealloc, Layout };
+    use super::std::alloc::{ alloc, dealloc, Layout };
     use super::*;
 
     #[inline]
@@ -74,38 +71,38 @@ mod raw_alloc {
 #[cfg(unix)]
 #[allow(non_snake_case, non_upper_case_globals)]
 pub mod Prot {
-    pub use ::libc::c_int as Ty;
+    pub use libc::c_int as Ty;
 
-    pub const NoAccess: Ty = ::libc::PROT_NONE;
-    pub const ReadOnly: Ty = ::libc::PROT_READ;
-    pub const WriteOnly: Ty = ::libc::PROT_WRITE;
-    pub const ReadWrite: Ty = (::libc::PROT_READ | ::libc::PROT_WRITE);
-    pub const Execute: Ty = ::libc::PROT_EXEC;
-    pub const ReadExec: Ty = (::libc::PROT_READ | ::libc::PROT_EXEC);
-    pub const WriteExec: Ty = (::libc::PROT_WRITE | ::libc::PROT_EXEC);
-    pub const ReadWriteExec: Ty = (::libc::PROT_READ | ::libc::PROT_WRITE | ::libc::PROT_EXEC);
+    pub const NoAccess: Ty = libc::PROT_NONE;
+    pub const ReadOnly: Ty = libc::PROT_READ;
+    pub const WriteOnly: Ty = libc::PROT_WRITE;
+    pub const ReadWrite: Ty = libc::PROT_READ | libc::PROT_WRITE;
+    pub const Execute: Ty = libc::PROT_EXEC;
+    pub const ReadExec: Ty = libc::PROT_READ | libc::PROT_EXEC;
+    pub const WriteExec: Ty = libc::PROT_WRITE | libc::PROT_EXEC;
+    pub const ReadWriteExec: Ty = libc::PROT_READ | libc::PROT_WRITE | libc::PROT_EXEC;
 }
 
 /// Prot enum.
 #[cfg(windows)]
 #[allow(non_snake_case, non_upper_case_globals)]
 pub mod Prot {
-    pub use ::winapi::shared::minwindef::DWORD as Ty;
+    pub use winapi::shared::minwindef::DWORD as Ty;
 
-    pub const NoAccess: Ty = ::winapi::um::winnt::PAGE_NOACCESS;
-    pub const ReadOnly: Ty = ::winapi::um::winnt::PAGE_READONLY;
-    pub const ReadWrite: Ty = ::winapi::um::winnt::PAGE_READWRITE;
-    pub const WriteCopy: Ty = ::winapi::um::winnt::PAGE_WRITECOPY;
-    pub const Execute: Ty = ::winapi::um::winnt::PAGE_EXECUTE;
-    pub const ReadExec: Ty = ::winapi::um::winnt::PAGE_EXECUTE_READ;
-    pub const ReadWriteExec: Ty = ::winapi::um::winnt::PAGE_EXECUTE_READWRITE;
-    pub const WriteCopyExec: Ty = ::winapi::um::winnt::PAGE_EXECUTE_WRITECOPY;
-    pub const Guard: Ty = ::winapi::um::winnt::PAGE_GUARD;
-    pub const NoCache: Ty = ::winapi::um::winnt::PAGE_NOCACHE;
-    pub const WriteCombine: Ty = ::winapi::um::winnt::PAGE_WRITECOMBINE;
-    pub const RevertToFileMap: Ty = ::winapi::um::winnt::PAGE_REVERT_TO_FILE_MAP;
-    pub const TargetsInvalid: Ty = ::winapi::um::winnt::PAGE_TARGETS_INVALID;
-    pub const TargetsNoUpdate: Ty = ::winapi::um::winnt::PAGE_TARGETS_NO_UPDATE;
+    pub const NoAccess: Ty = winapi::um::winnt::PAGE_NOACCESS;
+    pub const ReadOnly: Ty = winapi::um::winnt::PAGE_READONLY;
+    pub const ReadWrite: Ty = winapi::um::winnt::PAGE_READWRITE;
+    pub const WriteCopy: Ty = winapi::um::winnt::PAGE_WRITECOPY;
+    pub const Execute: Ty = winapi::um::winnt::PAGE_EXECUTE;
+    pub const ReadExec: Ty = winapi::um::winnt::PAGE_EXECUTE_READ;
+    pub const ReadWriteExec: Ty = winapi::um::winnt::PAGE_EXECUTE_READWRITE;
+    pub const WriteCopyExec: Ty = winapi::um::winnt::PAGE_EXECUTE_WRITECOPY;
+    pub const Guard: Ty = winapi::um::winnt::PAGE_GUARD;
+    pub const NoCache: Ty = winapi::um::winnt::PAGE_NOCACHE;
+    pub const WriteCombine: Ty = winapi::um::winnt::PAGE_WRITECOMBINE;
+    pub const RevertToFileMap: Ty = winapi::um::winnt::PAGE_REVERT_TO_FILE_MAP;
+    pub const TargetsInvalid: Ty = winapi::um::winnt::PAGE_TARGETS_INVALID;
+    pub const TargetsNoUpdate: Ty = winapi::um::winnt::PAGE_TARGETS_NO_UPDATE;
 }
 
 
@@ -113,19 +110,19 @@ pub mod Prot {
 #[cfg(unix)]
 #[inline]
 pub unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
-    ::libc::mprotect(ptr as *mut ::libc::c_void, len, prot as ::libc::c_int) == 0
+    libc::mprotect(ptr as *mut libc::c_void, len, prot as libc::c_int) == 0
 }
 
 /// Windows `VirtualProtect`.
 #[cfg(windows)]
 #[inline]
 pub unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
-    let mut old = mem::uninitialized();
-    ::winapi::um::memoryapi::VirtualProtect(
-        ptr as ::winapi::shared::minwindef::LPVOID,
-        len as ::winapi::shared::basetsd::SIZE_T,
-        prot as ::winapi::shared::minwindef::DWORD,
-        &mut old as ::winapi::shared::minwindef::PDWORD
+    let mut old = mem::MaybeUninit::<winapi::shared::minwindef::DWORD>::uninit();
+    winapi::um::memoryapi::VirtualProtect(
+        ptr as winapi::shared::minwindef::LPVOID,
+        len as winapi::shared::basetsd::SIZE_T,
+        prot as winapi::shared::minwindef::DWORD,
+        old.as_mut_ptr()
     ) != 0
 }
 
@@ -176,7 +173,7 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
     // mprotect ptr
     _mprotect(base_ptr.add(PAGE_SIZE), PAGE_SIZE, Prot::NoAccess);
     _mprotect(unprotected_ptr.add(unprotected_size), PAGE_SIZE, Prot::NoAccess);
-    ::mlock(unprotected_ptr, unprotected_size);
+    crate::mlock(unprotected_ptr, unprotected_size);
 
     let canary_ptr = unprotected_ptr.add(unprotected_size - size_with_canary);
     let user_ptr = canary_ptr.add(CANARY_SIZE);
@@ -220,13 +217,15 @@ pub unsafe fn free<T: ?Sized>(memptr: NonNull<T>) {
     let unprotected_size = ptr::read(base_ptr as *const usize);
 
     // check
-    assert!(::memeq(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE));
+    if !crate::memeq(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE) {
+        abort();
+    }
 
     // free
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
     _mprotect(base_ptr, total_size, Prot::ReadWrite);
 
-    ::munlock(unprotected_ptr, unprotected_size);
+    crate::munlock(unprotected_ptr, unprotected_size);
 
     free_aligned(base_ptr, total_size);
 }

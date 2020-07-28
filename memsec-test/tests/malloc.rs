@@ -1,8 +1,5 @@
 #![cfg(feature = "alloc")]
 
-#[cfg(target_os = "linux")] extern crate nix;
-extern crate memsec;
-
 use std::ptr::NonNull;
 
 

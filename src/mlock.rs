@@ -3,47 +3,50 @@
 #![cfg(feature = "use_os")]
 
 
-/// Unix `mlock`.
-#[cfg(unix)]
+/// Cross-platform `mlock`.
+///
+/// * Unix `mlock`.
+/// * Windows `VirtualLock`.
 pub unsafe fn mlock(addr: *mut u8, len: usize) -> bool {
-    #[cfg(target_os = "linux")]
-    ::libc::madvise(addr as *mut ::libc::c_void, len, ::libc::MADV_DONTDUMP);
+    #[cfg(unix)] {
+        #[cfg(target_os = "linux")]
+        libc::madvise(addr as *mut libc::c_void, len, libc::MADV_DONTDUMP);
 
-    #[cfg(freebsdlike)]
-    ::libc::madvise(addr as *mut ::libc::c_void, len, ::libc::MADV_NOCORE);
+        #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
+        libc::madvise(addr as *mut libc::c_void, len, libc::MADV_NOCORE);
 
-    ::libc::mlock(addr as *mut ::libc::c_void, len) == 0
+        libc::mlock(addr as *mut libc::c_void, len) == 0
+    }
+
+    #[cfg(windows)] {
+        winapi::um::memoryapi::VirtualLock(
+            addr as winapi::shared::minwindef::LPVOID,
+            len as winapi::shared::basetsd::SIZE_T
+        ) != 0
+    }
 }
 
-/// Windows `VirtualLock`.
-#[cfg(windows)]
-pub unsafe fn mlock(addr: *mut u8, len: usize) -> bool {
-    ::winapi::um::memoryapi::VirtualLock(
-        addr as ::winapi::shared::minwindef::LPVOID,
-        len as ::winapi::shared::basetsd::SIZE_T
-    ) != 0
-}
-
-/// Unix `munlock`.
-#[cfg(unix)]
+/// Cross-platform `munlock`.
+///
+/// * Unix `munlock`.
+/// * Windows `VirtualUnlock`.
 pub unsafe fn munlock(addr: *mut u8, len: usize) -> bool {
-    ::memzero(addr, len);
+    crate::memzero(addr, len);
 
-    #[cfg(target_os = "linux")]
-    ::libc::madvise(addr as *mut ::libc::c_void, len, ::libc::MADV_DODUMP);
+    #[cfg(unix)] {
+        #[cfg(target_os = "linux")]
+        libc::madvise(addr as *mut libc::c_void, len, libc::MADV_DODUMP);
 
-    #[cfg(freebsdlike)]
-    ::libc::madvise(addr as *mut ::libc::c_void, len, ::libc::MADV_CORE);
+        #[cfg(any(target_os = "freebsd", target_os = "dragonfly"))]
+        libc::madvise(addr as *mut libc::c_void, len, libc::MADV_CORE);
 
-    ::libc::munlock(addr as *mut ::libc::c_void, len) == 0
-}
+        libc::munlock(addr as *mut libc::c_void, len) == 0
+    }
 
-/// Windows `VirtualUnlock`.
-#[cfg(windows)]
-pub unsafe fn munlock(addr: *mut u8, len: usize) -> bool {
-    ::memzero(addr, len);
-    ::winapi::um::memoryapi::VirtualUnlock(
-        addr as ::winapi::shared::minwindef::LPVOID,
-        len as ::winapi::shared::basetsd::SIZE_T
-    ) != 0
+    #[cfg(windows)] {
+        winapi::um::memoryapi::VirtualUnlock(
+            addr as winapi::shared::minwindef::LPVOID,
+            len as winapi::shared::basetsd::SIZE_T
+        ) != 0
+    }
 }

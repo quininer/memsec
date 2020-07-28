@@ -1,8 +1,6 @@
 #![feature(test)]
 
 extern crate test;
-extern crate memsec;
-#[cfg(unix)] extern crate libsodium_sys;
 
 use test::Bencher;
 use std::mem::size_of_val;
@@ -13,7 +11,7 @@ fn ptr_write_zeroed_bench(b: &mut Bencher) {
     let mut x: U8ARRAY = [0; 1025];
 
     b.iter(|| unsafe {
-        ::std::ptr::write_volatile(&mut x, ::std::mem::zeroed());
+        ::std::ptr::write_volatile(&mut x, std::mem::zeroed());
     });
 }
 

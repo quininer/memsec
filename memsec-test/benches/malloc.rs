@@ -2,9 +2,6 @@
 #![feature(test)]
 
 extern crate test;
-extern crate libc;
-extern crate memsec;
-#[cfg(unix)] extern crate libsodium_sys;
 
 use std::ptr::NonNull;
 use test::Bencher;

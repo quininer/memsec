@@ -1,8 +1,3 @@
-extern crate memsec;
-extern crate quickcheck;
-extern crate libc;
-#[cfg(unix)] extern crate libsodium_sys;
-
 use std::{ mem, cmp };
 use quickcheck::quickcheck;
 

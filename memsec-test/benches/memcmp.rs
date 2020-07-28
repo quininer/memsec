@@ -1,9 +1,6 @@
 #![feature(test)]
 
 extern crate test;
-extern crate libc;
-extern crate memsec;
-#[cfg(unix)] extern crate libsodium_sys;
 
 use test::Bencher;
 use std::mem::size_of_val;
