@@ -8,7 +8,7 @@ os:
     - osx
 
 install:
-    - wget https://github.com/jedisct1/libsodium/releases/download/1.0.18/libsodium-1.0.18.tar.gz
+    - curl -L -O https://github.com/jedisct1/libsodium/releases/download/1.0.18-RELEASE/libsodium-1.0.18.tar.gz
     - tar xvfz libsodium-1.0.18.tar.gz
     - cd libsodium-1.0.18 && ./configure --prefix=$HOME/installed_libsodium && make && make install &&
       cd ..

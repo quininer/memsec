@@ -17,5 +17,5 @@ ref
 
 * [Securing memory allocations](https://download.libsodium.org/doc/helpers/memory_management.html)
 * [rlibc](https://github.com/alexcrichton/rlibc)
-* [aligned_alloc.rs](https://github.com/jonas-schievink/aligned_alloc.rs)
-* [cst_time_memcmp](https://github.com/chmike/cst_time_memcmp)
+* [aligned\_alloc.rs](https://github.com/jonas-schievink/aligned_alloc.rs)
+* [cst\_time\_memcmp](https://github.com/chmike/cst_time_memcmp)
