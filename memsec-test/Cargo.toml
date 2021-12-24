@@ -11,11 +11,11 @@ default-features = false
 
 [dev-dependencies]
 libc = "0.2"
-quickcheck = "0.9"
+quickcheck = "1"
 
 [target.'cfg(unix)'.dev-dependencies]
 libsodium-sys = { version = "0.2", features = [ "use-pkg-config" ] }
-nix = "0.17"
+nix = "0.23"
 
 [features]
 default = [ "alloc", "use_os" ]
