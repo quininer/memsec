@@ -19,10 +19,7 @@ pub unsafe fn mlock(addr: *mut u8, len: usize) -> bool {
     }
 
     #[cfg(windows)] {
-        winapi::um::memoryapi::VirtualLock(
-            addr as winapi::shared::minwindef::LPVOID,
-            len as winapi::shared::basetsd::SIZE_T
-        ) != 0
+        windows_sys::Win32::System::Memory::VirtualLock(addr.cast(), len) != 0
     }
 }
 
@@ -44,9 +41,6 @@ pub unsafe fn munlock(addr: *mut u8, len: usize) -> bool {
     }
 
     #[cfg(windows)] {
-        winapi::um::memoryapi::VirtualUnlock(
-            addr as winapi::shared::minwindef::LPVOID,
-            len as winapi::shared::basetsd::SIZE_T
-        ) != 0
+        windows_sys::Win32::System::Memory::VirtualUnlock(addr.cast(), len) != 0
     }
 }

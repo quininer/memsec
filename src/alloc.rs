@@ -31,7 +31,7 @@ unsafe fn alloc_init() {
 
     #[cfg(windows)] {
         let mut si = mem::MaybeUninit::uninit();
-        winapi::um::sysinfoapi::GetSystemInfo(si.as_mut_ptr());
+        windows_sys::Win32::System::SystemInformation::GetSystemInfo(si.as_mut_ptr());
         PAGE_SIZE = (*si.as_ptr()).dwPageSize as usize;
     }
 
@@ -87,22 +87,22 @@ pub mod Prot {
 #[cfg(windows)]
 #[allow(non_snake_case, non_upper_case_globals)]
 pub mod Prot {
-    pub use winapi::shared::minwindef::DWORD as Ty;
+    pub use windows_sys::Win32::System::Memory::PAGE_PROTECTION_FLAGS as Ty;
 
-    pub const NoAccess: Ty = winapi::um::winnt::PAGE_NOACCESS;
-    pub const ReadOnly: Ty = winapi::um::winnt::PAGE_READONLY;
-    pub const ReadWrite: Ty = winapi::um::winnt::PAGE_READWRITE;
-    pub const WriteCopy: Ty = winapi::um::winnt::PAGE_WRITECOPY;
-    pub const Execute: Ty = winapi::um::winnt::PAGE_EXECUTE;
-    pub const ReadExec: Ty = winapi::um::winnt::PAGE_EXECUTE_READ;
-    pub const ReadWriteExec: Ty = winapi::um::winnt::PAGE_EXECUTE_READWRITE;
-    pub const WriteCopyExec: Ty = winapi::um::winnt::PAGE_EXECUTE_WRITECOPY;
-    pub const Guard: Ty = winapi::um::winnt::PAGE_GUARD;
-    pub const NoCache: Ty = winapi::um::winnt::PAGE_NOCACHE;
-    pub const WriteCombine: Ty = winapi::um::winnt::PAGE_WRITECOMBINE;
-    pub const RevertToFileMap: Ty = winapi::um::winnt::PAGE_REVERT_TO_FILE_MAP;
-    pub const TargetsInvalid: Ty = winapi::um::winnt::PAGE_TARGETS_INVALID;
-    pub const TargetsNoUpdate: Ty = winapi::um::winnt::PAGE_TARGETS_NO_UPDATE;
+    pub const NoAccess: Ty = windows_sys::Win32::System::Memory::PAGE_NOACCESS;
+    pub const ReadOnly: Ty = windows_sys::Win32::System::Memory::PAGE_READONLY;
+    pub const ReadWrite: Ty = windows_sys::Win32::System::Memory::PAGE_READWRITE;
+    pub const WriteCopy: Ty = windows_sys::Win32::System::Memory::PAGE_WRITECOPY;
+    pub const Execute: Ty = windows_sys::Win32::System::Memory::PAGE_EXECUTE;
+    pub const ReadExec: Ty = windows_sys::Win32::System::Memory::PAGE_EXECUTE_READ;
+    pub const ReadWriteExec: Ty = windows_sys::Win32::System::Memory::PAGE_EXECUTE_READWRITE;
+    pub const WriteCopyExec: Ty = windows_sys::Win32::System::Memory::PAGE_EXECUTE_WRITECOPY;
+    pub const Guard: Ty = windows_sys::Win32::System::Memory::PAGE_GUARD;
+    pub const NoCache: Ty = windows_sys::Win32::System::Memory::PAGE_NOCACHE;
+    pub const WriteCombine: Ty = windows_sys::Win32::System::Memory::PAGE_WRITECOMBINE;
+    pub const RevertToFileMap: Ty = windows_sys::Win32::System::Memory::PAGE_REVERT_TO_FILE_MAP;
+    pub const TargetsInvalid: Ty = windows_sys::Win32::System::Memory::PAGE_TARGETS_INVALID;
+    pub const TargetsNoUpdate: Ty = windows_sys::Win32::System::Memory::PAGE_TARGETS_NO_UPDATE;
 }
 
 
@@ -117,13 +117,8 @@ pub unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
 #[cfg(windows)]
 #[inline]
 pub unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
-    let mut old = mem::MaybeUninit::<winapi::shared::minwindef::DWORD>::uninit();
-    winapi::um::memoryapi::VirtualProtect(
-        ptr as winapi::shared::minwindef::LPVOID,
-        len as winapi::shared::basetsd::SIZE_T,
-        prot as winapi::shared::minwindef::DWORD,
-        old.as_mut_ptr()
-    ) != 0
+    let mut old = mem::MaybeUninit::uninit();
+    windows_sys::Win32::System::Memory::VirtualProtect(ptr, len, prot, old.as_mut_ptr()) != 0
 }
 
 

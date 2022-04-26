@@ -22,9 +22,13 @@ libc = { version = "0.2", optional = true }
 
 [target.'cfg(windows)'.dependencies]
 winapi = { version = "0.3", features = [ "memoryapi", "sysinfoapi" ], optional = true }
+windows-sys = { version = "0.35", default-features = false, features = [
+	"Win32_System_SystemInformation",
+	"Win32_System_Memory"
+], optional = true }
 
 [features]
 default = [ "use_os", "alloc" ]
 nightly = []
-use_os = [ "libc", "winapi" ]
+use_os = [ "libc", "winapi", "windows-sys" ]
 alloc = [ "getrandom", "use_os" ]
