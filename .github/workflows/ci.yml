@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches:
+    - master
+  pull_request: {}
+
+jobs:
+  test:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    env:
+      RUSTFLAGS: "-D warnings"
+
+    steps:
+    - uses: actions-rs/toolchain@v1
+      with:
+        profile: minimal
+        toolchain: nightly
+        override: true
+    - uses: actions/checkout@master
+    - name: minimum feature
+      run:
+        - cd memsec-test
+        - cargo test --no-default-features
+    - name: all feature
+      run:
+        - cd memsec-test
+        - cargo test
+    - name: nightly
+      run:
+        - cd memsec-test
+        - cargo test --features nighlty
