@@ -14,7 +14,7 @@ libc = "0.2"
 quickcheck = "1"
 
 [target.'cfg(unix)'.dev-dependencies]
-libsodium-sys = { version = "0.2", features = [ "use-pkg-config" ] }
+libsodium-sys = { version = "0.2" }
 nix = "0.24"
 
 [features]

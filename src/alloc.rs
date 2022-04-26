@@ -118,7 +118,7 @@ pub unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
 #[inline]
 pub unsafe fn _mprotect(ptr: *mut u8, len: usize, prot: Prot::Ty) -> bool {
     let mut old = mem::MaybeUninit::uninit();
-    windows_sys::Win32::System::Memory::VirtualProtect(ptr, len, prot, old.as_mut_ptr()) != 0
+    windows_sys::Win32::System::Memory::VirtualProtect(ptr.cast(), len, prot, old.as_mut_ptr()) != 0
 }
 
 

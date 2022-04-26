@@ -4,6 +4,7 @@ on:
   push:
     branches:
     - master
+    - switch-to-windows-sys
   pull_request: {}
 
 jobs:
@@ -25,14 +26,14 @@ jobs:
         override: true
     - uses: actions/checkout@master
     - name: minimum feature
-      run:
-        - cd memsec-test
-        - cargo test --no-default-features
+      run: |
+        cd memsec-test
+        cargo test --no-default-features
     - name: all feature
-      run:
-        - cd memsec-test
-        - cargo test
+      run: |
+        cd memsec-test
+        cargo test
     - name: nightly
-      run:
-        - cd memsec-test
-        - cargo test --features nighlty
+      run: |
+        cd memsec-test
+        cargo test --features nightly
