@@ -15,7 +15,7 @@ quickcheck = "1"
 
 [target.'cfg(unix)'.dev-dependencies]
 libsodium-sys = { version = "0.2" }
-nix = "0.24"
+nix = "0.26"
 
 [features]
 default = [ "alloc", "use_os" ]
