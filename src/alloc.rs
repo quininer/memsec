@@ -4,7 +4,9 @@
 
 extern crate std;
 
+#[cfg(target_os = "linux")]
 use self::memfd_secret_alloc::*;
+
 use self::raw_alloc::*;
 use self::std::process::abort;
 use self::std::sync::Once;
