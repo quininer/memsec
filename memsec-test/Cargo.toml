@@ -18,7 +18,8 @@ libsodium-sys = { version = "0.2" }
 nix = "0.26"
 
 [features]
-default = [ "alloc", "use_os" ]
+default = [ "alloc", "use_os", "alloc_ext"]
 nightly = [ "memsec/nightly" ]
 use_os = [ "memsec/use_os" ]
 alloc = [ "memsec/alloc" ]
+alloc_ext = [ "memsec/alloc_ext" ]
