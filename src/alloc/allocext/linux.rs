@@ -1,20 +1,12 @@
-//! allocext
-//! OS Specific allocation
-//!
-//!
-
-#![cfg(feature = "alloc_ext")]
 extern crate std;
 use self::std::process::abort;
-use crate::{alloc::*,  Prot };
+use crate::{alloc::*, Prot};
 use core::mem;
 use core::ptr::{self, NonNull};
 use core::slice;
 
-#[cfg(target_os = "linux")]
 use self::memfd_secret_alloc::*;
 
-#[cfg(target_os = "linux")]
 mod memfd_secret_alloc {
     use core::convert::TryInto;
 
@@ -52,7 +44,6 @@ mod memfd_secret_alloc {
     }
 }
 
-#[cfg(target_os = "linux")]
 unsafe fn _memfd_secret(size: usize) -> Option<*mut u8> {
     ALLOC_INIT.call_once(|| alloc_init());
 
@@ -89,7 +80,6 @@ unsafe fn _memfd_secret(size: usize) -> Option<*mut u8> {
 
 /// Linux specific `memfd_secret` backed allocation
 #[inline]
-#[cfg(target_os = "linux")]
 pub unsafe fn memfd_secret<T>() -> Option<NonNull<T>> {
     _memfd_secret(mem::size_of::<T>()).map(|memptr| {
         ptr::write_bytes(memptr, GARBAGE_VALUE, mem::size_of::<T>());
@@ -99,7 +89,6 @@ pub unsafe fn memfd_secret<T>() -> Option<NonNull<T>> {
 
 /// Linux specific `memfd_secret` backed `sized` allocation
 #[inline]
-#[cfg(target_os = "linux")]
 pub unsafe fn memfd_secret_sized(size: usize) -> Option<NonNull<[u8]>> {
     _memfd_secret(size).map(|memptr| {
         ptr::write_bytes(memptr, GARBAGE_VALUE, size);
@@ -110,7 +99,6 @@ pub unsafe fn memfd_secret_sized(size: usize) -> Option<NonNull<[u8]>> {
 /// Secure `free` for memfd_secret allocations,
 /// i.e. provides read write access back to mprotect guard pages
 /// and unmaps mmaped secrets
-#[cfg(target_os = "linux")]
 pub unsafe fn free_memfd_secret<T: ?Sized>(memptr: NonNull<T>) {
     use libc::c_void;
 
