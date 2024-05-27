@@ -16,13 +16,7 @@ mod memfd_secret_alloc {
     pub unsafe fn alloc_memfd_secret(size: usize) -> Option<NonNull<u8>> {
         let fd: Result<libc::c_int, _> = libc::syscall(libc::SYS_memfd_secret, 0).try_into();
 
-        if fd.is_err() || fd.unwrap() < 0 {
-            return None;
-        }
-
-        let Ok(fd) = fd else {
-            return None;
-        };
+        let fd = fd.ok().filter(|&fd| fd >= 0)?;
 
         // File size is set using ftruncate
         let _ = libc::ftruncate(fd, size as libc::off_t);
