@@ -1,7 +1,7 @@
 extern crate std;
 use self::std::process::abort;
 use crate::{alloc::*, Prot};
-use core::mem;
+use core::mem::{self, size_of};
 use core::ptr::{self, NonNull};
 use core::slice;
 
@@ -9,11 +9,12 @@ use self::memfd_secret_alloc::*;
 
 mod memfd_secret_alloc {
     use core::convert::TryInto;
+    use std::{io, println};
 
     use super::*;
 
     #[inline]
-    pub unsafe fn alloc_memfd_secret(size: usize) -> Option<NonNull<u8>> {
+    pub unsafe fn alloc_memfd_secret(size: usize) -> Option<(NonNull<u8>, libc::c_int)> {
         let fd: Result<libc::c_int, _> = libc::syscall(libc::SYS_memfd_secret, 0).try_into();
 
         let fd = fd.ok().filter(|&fd| fd >= 0)?;
@@ -34,7 +35,7 @@ mod memfd_secret_alloc {
             return None;
         }
 
-        NonNull::new(ptr as *mut u8)
+        NonNull::new(ptr as *mut u8).map(|ptr| (ptr, fd))
     }
 }
 
@@ -49,7 +50,9 @@ unsafe fn _memfd_secret(size: usize) -> Option<*mut u8> {
     let size_with_canary = CANARY_SIZE + size;
     let unprotected_size = page_round(size_with_canary);
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
-    let base_ptr = alloc_memfd_secret(total_size)?.as_ptr();
+    let (base_ptr, fd) = alloc_memfd_secret(total_size)?;
+    let base_ptr = base_ptr.as_ptr();
+    let fd_ptr = base_ptr.add(size_of::<usize>());
     let unprotected_ptr = base_ptr.add(PAGE_SIZE * 2);
 
     // mprotect can be used to change protection flag after mmap setup
@@ -65,6 +68,7 @@ unsafe fn _memfd_secret(size: usize) -> Option<*mut u8> {
     let user_ptr = canary_ptr.add(CANARY_SIZE);
     ptr::copy_nonoverlapping(CANARY.as_ptr(), canary_ptr, CANARY_SIZE);
     ptr::write_unaligned(base_ptr as *mut usize, unprotected_size);
+    ptr::write_unaligned(fd_ptr as *mut libc::c_int, fd);
     _mprotect(base_ptr, PAGE_SIZE, Prot::ReadOnly);
 
     assert_eq!(unprotected_ptr_from_user_ptr(user_ptr), unprotected_ptr);
@@ -102,7 +106,9 @@ pub unsafe fn free_memfd_secret<T: ?Sized>(memptr: NonNull<T>) {
     let canary_ptr = memptr.sub(CANARY_SIZE);
     let unprotected_ptr = unprotected_ptr_from_user_ptr(memptr);
     let base_ptr = unprotected_ptr.sub(PAGE_SIZE * 2);
+    let fd_ptr = base_ptr.add(size_of::<usize>()) as *mut libc::c_int;
     let unprotected_size = ptr::read(base_ptr as *const usize);
+    let fd = ptr::read(fd_ptr);
 
     // check
     if !crate::memeq(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE) {
@@ -114,6 +120,11 @@ pub unsafe fn free_memfd_secret<T: ?Sized>(memptr: NonNull<T>) {
     _mprotect(base_ptr, total_size, Prot::ReadWrite);
 
     let res = libc::munmap(base_ptr as *mut c_void, total_size);
+    if res < 0 {
+        abort();
+    }
+
+    let res = libc::close(fd);
     if res < 0 {
         abort();
     }
