@@ -16,6 +16,15 @@ fn memsec_malloc(b: &mut Bencher) {
 
 #[cfg(unix)]
 #[bench]
+fn memsec_memfd_secret(b: &mut Bencher) {
+    b.iter(|| unsafe {
+        let ptr: NonNull<[u8; 512]> = memsec::memfd_secret().unwrap();
+        memsec::free_memfd_secret(ptr);
+    });
+}
+
+#[cfg(unix)]
+#[bench]
 fn libsodium_malloc(b: &mut Bencher) {
     unsafe { libsodium_sys::sodium_init() };
     b.iter(|| unsafe {
