@@ -12,10 +12,13 @@ default-features = false
 [dev-dependencies]
 libc = "0.2"
 quickcheck = "1"
+procspawn = {version = "1.0.0", features = ["test-support"]}
 
 [target.'cfg(unix)'.dev-dependencies]
 libsodium-sys = { version = "0.2" }
 nix = "0.26"
+ipc-channel = "0.18.0"
+serde = "1.0.203"
 
 [features]
 default = [ "alloc", "use_os", "alloc_ext"]

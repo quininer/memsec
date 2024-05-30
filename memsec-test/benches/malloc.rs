@@ -6,7 +6,6 @@ extern crate test;
 use std::ptr::NonNull;
 use test::Bencher;
 
-
 #[bench]
 fn memsec_malloc(b: &mut Bencher) {
     b.iter(|| unsafe {
