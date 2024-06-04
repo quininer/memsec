@@ -42,6 +42,7 @@ unsafe fn alloc_init() {
 
     PAGE_MASK = PAGE_SIZE - 1;
 
+    #[allow(static_mut_refs)]
     getrandom(&mut CANARY).unwrap();
 }
 

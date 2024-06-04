@@ -8,8 +8,8 @@ use core::slice;
 use self::memfd_secret_alloc::*;
 
 mod memfd_secret_alloc {
-    use core::convert::TryInto;
     use super::*;
+    use core::convert::TryInto;
 
     #[inline]
     pub unsafe fn alloc_memfd_secret(size: usize) -> Option<(NonNull<u8>, libc::c_int)> {
@@ -120,7 +120,7 @@ pub unsafe fn free_memfd_secret<T: ?Sized>(memptr: NonNull<T>) {
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
     _mprotect(base_ptr, total_size, Prot::ReadWrite);
 
-    crate::memzero(unprotected_ptr,unprotected_size);
+    crate::memzero(unprotected_ptr, unprotected_size);
 
     let res = libc::munmap(base_ptr as *mut c_void, total_size);
     if res < 0 {
