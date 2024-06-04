@@ -9,8 +9,6 @@ use self::memfd_secret_alloc::*;
 
 mod memfd_secret_alloc {
     use core::convert::TryInto;
-    use std::{io, println};
-
     use super::*;
 
     #[inline]
@@ -41,6 +39,9 @@ mod memfd_secret_alloc {
 
 unsafe fn _memfd_secret(size: usize) -> Option<*mut u8> {
     ALLOC_INIT.call_once(|| alloc_init());
+
+    //Assert size of unprotected_size (usize) and fd (i32) is less than PAGE_SIZE before allocating memory
+    assert!(size_of::<usize>() + size_of::<i32>() <= PAGE_SIZE);
 
     if size >= ::core::usize::MAX - PAGE_SIZE * 4 {
         return None;
@@ -118,6 +119,8 @@ pub unsafe fn free_memfd_secret<T: ?Sized>(memptr: NonNull<T>) {
     // free
     let total_size = PAGE_SIZE + PAGE_SIZE + unprotected_size + PAGE_SIZE;
     _mprotect(base_ptr, total_size, Prot::ReadWrite);
+
+    crate::memzero(base_ptr, total_size);
 
     let res = libc::munmap(base_ptr as *mut c_void, total_size);
     if res < 0 {

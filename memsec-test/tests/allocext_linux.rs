@@ -107,8 +107,6 @@ enum TestState {
     Free,
 }
 
-/// Attempts to
-#[cfg(unix)]
 fn attempt_write_in_region(
     offset: Offset,
     end_process_normally: bool,
