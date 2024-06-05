@@ -1,4 +1,5 @@
 #![no_std]
+#![cfg_attr(feature = "nightly", allow(internal_features))]
 #![cfg_attr(feature = "nightly", feature(core_intrinsics))]
 #![allow(clippy::missing_safety_doc)]
 
