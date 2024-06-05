@@ -19,7 +19,6 @@ fn memzero_test() {
 
 #[test]
 fn memeq_test() {
-    #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
     fn memeq(x: Vec<u8>, y: Vec<u8>) -> bool {
         unsafe {
             let memsec_output = memsec::memeq(x.as_ptr(), y.as_ptr(), cmp::min(x.len(), y.len()));
@@ -36,7 +35,6 @@ fn memeq_test() {
 
 #[test]
 fn memcmp_test() {
-    #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
     fn memcmp(x: Vec<u8>, y: Vec<u8>) -> bool {
         unsafe {
             let memsec_output = memsec::memcmp(x.as_ptr(), y.as_ptr(), cmp::min(x.len(), y.len()));
