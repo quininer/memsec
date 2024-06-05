@@ -83,10 +83,12 @@ fn malloc_mprotect_1_test() {
     }
 }
 
+#[cfg(unix)]
+mod unix_only {
+
+use std::ptr::NonNull;
 procspawn::enable_test_support!();
-
 use std::time::Duration;
-
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
@@ -106,7 +108,6 @@ enum TestState {
     Free,
 }
 
-#[cfg(unix)]
 fn attempt_write_in_region(
     offset: Offset,
     end_process_normally: bool,
@@ -205,7 +206,6 @@ fn attempt_write_in_region(
     assert!(r.is_ok() == end_process_normally);
 }
 
-#[cfg(unix)]
 #[test]
 fn malloc_probe_outside_normal() {
     attempt_write_in_region(
@@ -220,7 +220,6 @@ fn malloc_probe_outside_normal() {
     );
 }
 
-#[cfg(unix)]
 #[test]
 fn malloc_probe_outside_limits_canary() {
     //Canary changes crash the process
@@ -236,7 +235,6 @@ fn malloc_probe_outside_limits_canary() {
     );
 }
 
-#[cfg(unix)]
 #[test]
 fn malloc_probe_outside_limits_page_above() {
     attempt_write_in_region(
@@ -246,7 +244,6 @@ fn malloc_probe_outside_limits_page_above() {
     );
 }
 
-#[cfg(unix)]
 #[test]
 fn malloc_probe_outside_limits_two_pages_above() {
     attempt_write_in_region(
@@ -256,7 +253,6 @@ fn malloc_probe_outside_limits_two_pages_above() {
     );
 }
 
-#[cfg(unix)]
 #[test]
 fn malloc_probe_outside_limits_page_after_above() {
     attempt_write_in_region(
@@ -264,4 +260,5 @@ fn malloc_probe_outside_limits_page_after_above() {
         false,
         vec![TestState::Init, TestState::Allocate, TestState::Operation],
     );
+}
 }
