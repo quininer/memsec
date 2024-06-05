@@ -1,3 +1,4 @@
+#![cfg(feature = "alloc")]
 #![cfg(unix)]
 
 use std::ptr::NonNull;
