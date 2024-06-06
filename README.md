@@ -11,6 +11,7 @@ Rust implementation `libsodium/utils`.
 * [x] `memset`/`memzero`
 * [x] `mlock`/`munlock`
 * [x] `alloc`/`free`/`mprotect`
+* [x] Linux only: `alloc_memfd_secret`/`free_memfd_secret` functions similar to `alloc`/`free` implementation backed by `memfd_secret`  
 
 ref
 ---
@@ -19,3 +20,4 @@ ref
 * [rlibc](https://github.com/alexcrichton/rlibc)
 * [aligned\_alloc.rs](https://github.com/jonas-schievink/aligned_alloc.rs)
 * [cst\_time\_memcmp](https://github.com/chmike/cst_time_memcmp)
+* [memfd_secret] (https://man.archlinux.org/man/memfd_secret.2.en)
