@@ -1,6 +1,5 @@
-use std::{ mem, cmp };
 use quickcheck::quickcheck;
-
+use std::{cmp, mem};
 
 #[test]
 fn memzero_test() {
@@ -10,25 +9,23 @@ fn memzero_test() {
         assert_eq!(x, [0; 16]);
         x.clone_from_slice(&[1; 16]);
         assert_eq!(x, [1; 16]);
-        memsec::memzero(x[1..11].as_mut_ptr() as *mut u8, 10 * mem::size_of_val(&x[0]));
+        memsec::memzero(
+            x[1..11].as_mut_ptr() as *mut u8,
+            10 * mem::size_of_val(&x[0]),
+        );
         assert_eq!(x, [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1]);
     }
 }
 
 #[test]
 fn memeq_test() {
-    #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
     fn memeq(x: Vec<u8>, y: Vec<u8>) -> bool {
         unsafe {
-            let memsec_output = memsec::memeq(
-                x.as_ptr(),
-                y.as_ptr(),
-                cmp::min(x.len(), y.len())
-            );
+            let memsec_output = memsec::memeq(x.as_ptr(), y.as_ptr(), cmp::min(x.len(), y.len()));
             let libc_output = libc::memcmp(
                 x.as_ptr() as *const libc::c_void,
                 y.as_ptr() as *const libc::c_void,
-                cmp::min(x.len(), y.len())
+                cmp::min(x.len(), y.len()),
             ) == 0;
             memsec_output == libc_output
         }
@@ -38,18 +35,13 @@ fn memeq_test() {
 
 #[test]
 fn memcmp_test() {
-    #[cfg_attr(feature = "cargo-clippy", allow(needless_pass_by_value))]
     fn memcmp(x: Vec<u8>, y: Vec<u8>) -> bool {
         unsafe {
-            let memsec_output = memsec::memcmp(
-                x.as_ptr(),
-                y.as_ptr(),
-                cmp::min(x.len(), y.len())
-            );
+            let memsec_output = memsec::memcmp(x.as_ptr(), y.as_ptr(), cmp::min(x.len(), y.len()));
             let libc_output = libc::memcmp(
                 x.as_ptr() as *const libc::c_void,
                 y.as_ptr() as *const libc::c_void,
-                cmp::min(x.len(), y.len())
+                cmp::min(x.len(), y.len()),
             );
             (memsec_output > 0) == (libc_output > 0)
                 && (memsec_output < 0) == (libc_output < 0)

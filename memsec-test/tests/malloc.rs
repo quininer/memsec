@@ -2,7 +2,6 @@
 
 use std::ptr::NonNull;
 
-
 #[test]
 fn malloc_u64_test() {
     unsafe {

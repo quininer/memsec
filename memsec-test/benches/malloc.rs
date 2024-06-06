@@ -6,12 +6,20 @@ extern crate test;
 use std::ptr::NonNull;
 use test::Bencher;
 
-
 #[bench]
 fn memsec_malloc(b: &mut Bencher) {
     b.iter(|| unsafe {
         let ptr: NonNull<[u8; 512]> = memsec::malloc().unwrap();
         memsec::free(ptr);
+    });
+}
+
+#[cfg(unix)]
+#[bench]
+fn memsec_memfd_secret(b: &mut Bencher) {
+    b.iter(|| unsafe {
+        let ptr: NonNull<[u8; 512]> = memsec::memfd_secret().unwrap();
+        memsec::free_memfd_secret(ptr);
     });
 }
 

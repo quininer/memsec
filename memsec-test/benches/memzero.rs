@@ -2,8 +2,8 @@
 
 extern crate test;
 
-use test::Bencher;
 use std::mem::size_of_val;
+use test::Bencher;
 
 #[bench]
 fn ptr_write_zeroed_bench(b: &mut Bencher) {
@@ -19,9 +19,7 @@ fn ptr_write_zeroed_bench(b: &mut Bencher) {
 fn memsec_memzero_bench(b: &mut Bencher) {
     let mut x: [u8; 1025] = [0; 1025];
 
-    b.iter(|| unsafe {
-        memsec::memzero(x.as_mut_ptr(), size_of_val(&x))
-    });
+    b.iter(|| unsafe { memsec::memzero(x.as_mut_ptr(), size_of_val(&x)) });
 }
 
 #[cfg(unix)]
@@ -29,7 +27,5 @@ fn memsec_memzero_bench(b: &mut Bencher) {
 fn libsodium_memzero_bench(b: &mut Bencher) {
     let mut x: [u8; 1025] = [0; 1025];
 
-    b.iter(|| unsafe {
-        libsodium_sys::sodium_memzero(x.as_mut_ptr() as *mut _, size_of_val(&x))
-    });
+    b.iter(|| unsafe { libsodium_sys::sodium_memzero(x.as_mut_ptr() as *mut _, size_of_val(&x)) });
 }
