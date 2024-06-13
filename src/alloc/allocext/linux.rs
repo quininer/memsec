@@ -4,7 +4,7 @@ use libc::{MAP_ANONYMOUS, MAP_FIXED, MAP_NORESERVE, MAP_SHARED, PROT_NONE};
 use self::std::process::abort;
 use crate::{alloc::*, Prot};
 use core::mem::{self, size_of};
-use core::ptr::{self, null_mut, NonNull};
+use core::ptr::{self, NonNull};
 use core::slice;
 
 use self::memfd_secret_alloc::*;
