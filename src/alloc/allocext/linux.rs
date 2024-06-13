@@ -15,8 +15,9 @@ mod memfd_secret_alloc {
     use super::*;
     use core::convert::TryInto;
 
+    /// Allocate memfd_secret with given size and optionally at given address ptr
     #[inline]
-    pub unsafe fn alloc_memfd_secret(
+    pub unsafe fn alloc_memfd_secret_at_ptr(
         size: usize,
         ptr: Option<*mut libc::c_void>,
     ) -> Option<(NonNull<u8>, libc::c_int)> {
@@ -28,11 +29,7 @@ mod memfd_secret_alloc {
         let _ = libc::ftruncate(fd, size as libc::off_t);
 
         let ptr = libc::mmap(
-            if ptr.is_some() {
-                ptr.unwrap()
-            } else {
-                ptr::null_mut()
-            },
+            ptr.unwrap_or_else(ptr::null_mut),
             size,
             Prot::ReadWrite,
             libc::MAP_SHARED
@@ -68,7 +65,7 @@ unsafe fn _memfd_secret(size: usize) -> Option<*mut u8> {
     let total_size = front_guard_size + unprotected_size + back_guard_size;
 
     let base_ptr = libc::mmap(
-        null_mut(),
+        ptr::null_mut(),
         total_size,
         PROT_NONE,
         MAP_SHARED | MAP_ANONYMOUS | MAP_NORESERVE,
@@ -97,7 +94,7 @@ unsafe fn _memfd_secret(size: usize) -> Option<*mut u8> {
 
     let unprotected_ptr = base_ptr.add(front_guard_size);
     let Some((unprotected_ptr_val, fd)) =
-        alloc_memfd_secret(unprotected_size, Some(unprotected_ptr as *mut libc::c_void))
+        alloc_memfd_secret_at_ptr(unprotected_size, Some(unprotected_ptr as *mut libc::c_void))
     else {
         libc::munmap(base_ptr_stored as *mut libc::c_void, PAGE_SIZE);
         libc::munmap(base_ptr as *mut libc::c_void, total_size);
