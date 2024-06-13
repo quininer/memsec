@@ -16,6 +16,7 @@ mod memfd_secret_alloc {
     use core::convert::TryInto;
 
     /// Allocate memfd_secret with given size and optionally at given address ptr
+    /// Returns tuple of ptr to memory and file descriptor of memfd_secret
     #[inline]
     pub unsafe fn alloc_memfd_secret_at_ptr(
         size: usize,
