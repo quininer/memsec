@@ -20,4 +20,4 @@ ref
 * [rlibc](https://github.com/alexcrichton/rlibc)
 * [aligned\_alloc.rs](https://github.com/jonas-schievink/aligned_alloc.rs)
 * [cst\_time\_memcmp](https://github.com/chmike/cst_time_memcmp)
-* [memfd_secret] (https://man.archlinux.org/man/memfd_secret.2.en)
+* [memfd_secret](https://man.archlinux.org/man/memfd_secret.2.en)
