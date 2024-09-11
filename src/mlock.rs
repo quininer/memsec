@@ -99,8 +99,22 @@ unsafe fn get_page_aligned_addrs(addr: *mut u8, len: usize, ps: usize) -> (usize
 mod tests {
     use super::*;
 
-    #[test]
+
+  #[test]
     fn test_get_page_aligned_addrs_exact_page_boundary() {
+        let addr = 0x1000 as *mut u8;
+        let len = 0x1000; // 4KB
+        let page_size = 0x1000; // 4KB page size
+
+        unsafe {
+            let (start_addr, end_addr) = get_page_aligned_addrs(addr, len, page_size);
+            assert_eq!(start_addr, 0x1000);
+            assert_eq!(end_addr, 0x2000);
+        }
+    }
+
+    #[test]
+    fn test_get_page_aligned_addrs_with_offset() {
         let addr = 0x1234 as *mut u8;
         let len = 0x1000; // 4KB
         let test_page_size = 0x1000; // 4KB page size
@@ -108,6 +122,19 @@ mod tests {
         unsafe {
             let (start_addr, end_addr) = get_page_aligned_addrs(addr, len, test_page_size);
             assert_eq!(start_addr, 0x1000);
+            assert_eq!(end_addr, 0x3000);
+        }
+    }
+
+    #[test]
+    fn test_get_page_aligned_addrs_small_length() {
+        let addr = 0x2000 as *mut u8;
+        let len = 0x100; // 256 bytes
+        let page_size = 0x1000; // 4KB page size
+
+        unsafe {
+            let (start_addr, end_addr) = get_page_aligned_addrs(addr, len, page_size);
+            assert_eq!(start_addr, 0x2000);
             assert_eq!(end_addr, 0x3000);
         }
     }
