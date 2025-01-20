@@ -173,6 +173,7 @@ unsafe fn _malloc(size: usize) -> Option<*mut u8> {
 
     let canary_ptr = unprotected_ptr.add(unprotected_size - size_with_canary);
     let user_ptr = canary_ptr.add(CANARY_SIZE);
+    #[allow(static_mut_refs)]
     ptr::copy_nonoverlapping(CANARY.as_ptr(), canary_ptr, CANARY_SIZE);
     ptr::write_unaligned(base_ptr as *mut usize, unprotected_size);
     _mprotect(base_ptr, PAGE_SIZE, Prot::ReadOnly);
@@ -211,6 +212,7 @@ pub unsafe fn free<T: ?Sized>(memptr: NonNull<T>) {
     let unprotected_size = ptr::read(base_ptr as *const usize);
 
     // check
+    #[allow(static_mut_refs)]
     if !crate::memeq(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE) {
         abort();
     }
