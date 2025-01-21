@@ -67,6 +67,7 @@ unsafe fn _memfd_secret(size: usize) -> Option<*mut u8> {
 
     let canary_ptr = unprotected_ptr.add(unprotected_size - size_with_canary);
     let user_ptr = canary_ptr.add(CANARY_SIZE);
+    #[allow(static_mut_refs)]
     ptr::copy_nonoverlapping(CANARY.as_ptr(), canary_ptr, CANARY_SIZE);
     ptr::write_unaligned(base_ptr as *mut usize, unprotected_size);
     ptr::write_unaligned(fd_ptr as *mut libc::c_int, fd);
@@ -112,6 +113,7 @@ pub unsafe fn free_memfd_secret<T: ?Sized>(memptr: NonNull<T>) {
     let fd = ptr::read(fd_ptr);
 
     // check
+    #[allow(static_mut_refs)]
     if !crate::memeq(canary_ptr as *const u8, CANARY.as_ptr(), CANARY_SIZE) {
         abort();
     }
