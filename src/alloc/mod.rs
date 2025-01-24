@@ -15,15 +15,15 @@ use getrandom::getrandom;
 
 const GARBAGE_VALUE: u8 = 0xd0;
 const CANARY_SIZE: usize = 16;
-static ALLOC_INIT: Once = Once::new();
-static mut PAGE_SIZE: usize = 0;
+pub(crate) static ALLOC_INIT: Once = Once::new();
+pub(crate) static mut PAGE_SIZE: usize = 0;
 static mut PAGE_MASK: usize = 0;
 static mut CANARY: [u8; CANARY_SIZE] = [0; CANARY_SIZE];
 
 // -- alloc init --
 
 #[inline]
-unsafe fn alloc_init() {
+pub(crate) unsafe fn alloc_init() {
     #[cfg(unix)]
     {
         PAGE_SIZE = libc::sysconf(libc::_SC_PAGESIZE) as usize;
